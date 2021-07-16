@@ -25,7 +25,7 @@ webhook_host=your_domain # 配置telegram webhook域名，由于telegram要求we
 bot_token=your_bot_token  #telegram bot token
 ```
 三、
-将域名解析到本机，用你喜欢的方式为nonebot2的监听端口配置反代
+将域名解析到本机，用你喜欢的方式为nonebot2的监听端口配置反代  
 四、
 开始写机器人（摸鱼）
 
