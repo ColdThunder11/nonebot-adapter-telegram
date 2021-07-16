@@ -1,7 +1,8 @@
 from copy import Error
 from enum import Enum
+from re import S
 from ssl import OP_ALL
-from typing import Dict, List, Optional, Text
+from typing import Dict, List, Optional, Text, Union
 from typing_extensions import Literal
 
 from pydantic import BaseModel, root_validator
@@ -10,7 +11,7 @@ from nonebot.typing import overrides
 from nonebot.adapters import Event as BaseEvent
 from typing import Any
 
-from .message import Message
+from .message import Message, MessageSegment
 
 
 class Event(BaseEvent):
@@ -73,6 +74,12 @@ class ChatPermissions(BaseModel):
     can_invite_users: Optional[bool]
     can_pin_messages: Optional[bool]
 
+class MaskPosition(BaseModel):
+    point: str
+    x_shift: float
+    y_shift: float
+    scale: float
+
 class ChatPhoto(BaseModel):
     small_file_id: str
     small_file_unique_id: str
@@ -123,13 +130,20 @@ class MessageChat(BaseModel):
     linked_chat_id: Optional[int]
     location: Optional[MessageLocation]
 
-class MessageEntitie(BaseModel):
+class MessageEntitiy(BaseModel):
     offset: int
     length: int
     type: str
     url: Optional[str]
     user: Optional[MessageUser]
     language: Optional[str]
+
+class InputMediaPhoto(BaseModel):
+    type: str
+    media: str
+    caption: Optional[str]
+    prase_mode: Optional[str]
+    caption_entities: Optional[List[MessageEntitiy]]
 
 class TextMessage(BaseModel):
     content: str
@@ -171,6 +185,46 @@ class DocumentMessage(BaseModel):
     file_unique_id: str
     file_size: int
 
+class StickerMessage(BaseModel):
+    file_id: str
+    file_unique_id: str
+    width: int
+    height: int
+    is_animated: bool
+    thumb: Optional[PhotoSizeItem]
+    emoji: Optional[str]
+    set_name: Optional[str]
+    mask_position: Optional[MaskPosition]
+    file_size: Optional[int]
+
+class VideoMessage(BaseModel):
+    file_id: str
+    file_unique_id: str
+    width: int
+    height: int
+    duration: int
+    thumb: Optional[PhotoSizeItem]
+    file_name: Optional[str]
+    mime_type: Optional[str]
+    file_size: Optional[int]
+
+class VideoNoteMessage(BaseModel):
+    file_id: str
+    file_unique_id: str
+    length: int
+    duration: int
+    thumb: Optional[PhotoSizeItem]
+    file_size: Optional[int]
+
+class VoiceMessage(BaseModel):
+    file_id: str
+    file_unique_id: str
+    duration: int
+    mime_type: Optional[str]
+    file_size: Optional[int]
+
+
+
 class MessageBody(BaseModel):
     @root_validator(pre=True)
     def gen_message(cls, values: dict):
@@ -195,12 +249,23 @@ class MessageBody(BaseModel):
     media_group_id: Optional[str]
     author_signature: Optional[str]
     text: Optional[str]
-    entities: Optional[List[MessageEntitie]]
+    entities: Optional[List[MessageEntitiy]]
     animation: Optional[AnimationMessage]
     audio: Optional[AudioMessage]
     document: Optional[DocumentMessage]
-    caption: Optional[str]
     photo: Optional[List[PhotoSizeItem]]
+    sticker: Optional[StickerMessage]
+    video: Optional[VideoMessage]
+    video_note: Optional[VideoNoteMessage]
+    voice: Optional[VoiceMessage]
+    caption: Optional[str]
+    caption_entities: Optional[List[MessageEntitiy]]
+    new_chat_members: Optional[List[MessageUser]]
+    left_chat_member: Optional[MessageUser]
+    new_chat_title: Optional[str]
+    
+
+
     
 class CallbackQuery(BaseModel):
     @root_validator(pre=True)
@@ -273,9 +338,9 @@ class MessageEvent(Event):
     def get_plaintext(self) -> str:
         if self.message.text:
             return self.message.text
-        if self.message.photo:
-            if self.message.caption:
-                return self.message.caption
+        #if self.message.photo:
+        #    if self.message.caption:
+        #        return self.message.caption
         return ""
 
     @overrides(Event)
@@ -299,7 +364,7 @@ class GroupMessageEvent(MessageEvent):
     #def is_tome(self) -> bool:
     #    return self.isInAtList
 
-    @overrides(MessageEvent)
+    @overrides(Event)
     def get_session_id(self) -> str:
         return f"group_{self.message.chat.id}_{self.message.mfrom.id}" 
 
@@ -314,7 +379,7 @@ class CallbackQueryEvent(MessageEvent):
 
     @overrides(Event)
     def get_event_description(self) -> str:
-        return f'Message[CallbackQuery] {self.callback_query.id} from {self.callback_query.mfrom.id} "{self.callback_query.data}"'
+        return f'Message[{self.get_type()}] {self.callback_query.id} from {self.callback_query.mfrom.id} "{self.callback_query.data}"'
     
     @overrides(Event)
     def get_plaintext(self) -> str:
@@ -323,7 +388,38 @@ class CallbackQueryEvent(MessageEvent):
     @overrides(Event)
     def get_message(self) -> Message:
         return Message([{"type": "markup","data":{"type": "inline"}}])
-    
-    async def answer_callback_query(self, bot) -> None:
-        await bot.call_api("answerCallbackQuery",data ={"callback_query_id": self.callback_query.id})
-    
+
+class NewChatMembersEvent(MessageEvent):
+    @overrides(Event)
+    def get_type(self) -> Literal["message", "notice", "request", "meta_event"]:
+        return "notice"
+    @overrides(Event)
+    def get_event_name(self) -> str:
+        return f"{self.get_type()}.new_chat_members"
+    @overrides(Event)
+    def get_event_description(self) -> str:
+        return f'Message[{self.get_type()}] {len(self.message.new_chat_members)} new member(s) to {self.message.chat.title}'
+    @overrides(Event)
+    def get_session_id(self) -> str:
+        return f"group_new_member" 
+    def get_member_info(self) -> List[MessageUser]:
+        return self.message.new_chat_members
+
+class LeafChatMemberEvent(MessageEvent):
+    @overrides(Event)
+    def get_type(self) -> Literal["message", "notice", "request", "meta_event"]:
+        return "notice"
+    @overrides(Event)
+    def get_event_name(self) -> str:
+        return f"{self.get_type()}.left_chat_member"
+    @overrides(Event)
+    def get_event_description(self) -> str:
+        if self.message.left_chat_member.username:
+            return f'Message[{self.get_type()}] {self.message.left_chat_member.username} leaf {self.message.chat.title}'
+        else:
+            return f'Message[{self.get_type()}] {self.message.left_chat_member.id} leaf {self.message.chat.title}'
+    @overrides(Event)
+    def get_session_id(self) -> str:
+        return f"group_new_member" 
+    def get_member_info(self) -> List[MessageUser]:
+        return self.message.new_chat_members

@@ -76,6 +76,7 @@ class Bot(BaseBot):
                 if message["callback_query"]["from"]["is_bot"]:
                     return
                 event = CallbackQueryEvent.parse_obj(message)
+            
             elif "message" in message:
                 if message["message"]["from"]["is_bot"]:
                     return
@@ -174,7 +175,8 @@ class Bot(BaseBot):
 
           * ``event: Event``: Event 对象
           * ``message: Union[str, Message, MessageSegment]``: 要发送的消息
-          * ``at_sender: bool``: 是否 @ 事件主体
+          * ``at_sender: bool``: 是否 @ 事件主体 对隐藏了username的人会发生错误，我也不知道怎么@
+          * ``reply_message``: 是否回复原消息 应尽量使用reply而不是at
           * ``**kwargs``: 覆盖默认参数
 
         :返回:
@@ -190,7 +192,13 @@ class Bot(BaseBot):
         msg: Message = message if isinstance(message, Message) else Message(message)
         #process Message
         await self.process_send_message(event, msg, at_sender,reply_message)
-        
+
+    async def delete_message(self, chat_id: int, message_id: int) -> None:
+        await self.call_api("deleteMessage",data ={"chat_id":chat_id,"message_id":message_id})
+
+    async def edit_message_text(self,chat_id:Union["int","str"],message_id:int,text: str,reply_markup:List):
+        await self.call_api("editMessageText",data ={"chat_id":chat_id,"message_id":message_id,"text":text,"reply_markup":{"inline_keyboard":reply_markup}})
+
     async def call_multipart_form_data_api(self, api:str, file: dict, data: dict):
         log("DEBUG", f"Calling API <y>{api}</y>")
         try:
@@ -227,6 +235,12 @@ class Bot(BaseBot):
         result = await self.call_api("getFile", data = {"file_id": file_id})
         return f"https://api.telegram.org/file/bot{self.telegram_config.bot_token}/{result['file_path']}"
     
+    async def answer_callback_query(self, event: CallbackQueryEvent) -> None:
+        await self.call_api("answerCallbackQuery",data ={"callback_query_id": event.callback_query.id})
+
+    async def delete_orig_message(self, event: CallbackQueryEvent) -> None:
+        await self.delete_message(event.callback_query.message.chat.id,event.callback_query.message.message_id)
+
     async def donload_photo(self, photo: Union[PhotoSizeItem, List[PhotoSizeItem]]) -> bytes:
         download_link = self.get_file_download_link(photo)
         try:
@@ -242,64 +256,72 @@ class Bot(BaseBot):
         if isinstance(event, GroupMessageEvent):
             print("pre_process group message")
             if event.message.text:
-                if self.bot_name in event.message.text:
-                    event.message.text = event.message.text.replace(f"self.bot_name","")
+                if f"@{self.bot_name}" in event.message.text:
+                    event.message.text = event.message.text.replace(f"@{self.bot_name}","").strip()
                     event.to_me = True
                     print(f"event.message.text:{event.message.text}")
     
     async def process_send_message(self, event:MessageEvent, message: Message, at_sender: bool = False, reply_message: bool = False):
         ms_list: List[MessageSegment] = []
         core_ms: MessageSegment = None
+        media_message_count: int = 0
         inlineKeyboardMarkupArray = None
         if event.message:
             chat_id = event.message.chat.id
         elif event.callback_query:
             chat_id = event.callback_query.message.chat.id
         for ms in message:
+            if ms.type == "photo":
+                media_message_count += 1
             ms_list.append(ms)
+        if media_message_count > 1:
+            #send as media group
+            return
+            pass
         if len(ms_list) > 1:
             for ms in ms_list:
-                if ms.type == "text" or ms.type == "photo":
+                if ms.type == "photo":
                     core_ms = ms
-                    continue
+                elif ms.type == "text" :
+                    if core_ms != None:
+                        if core_ms.type == "photo":
+                            if "caption" in core_ms.data:
+                                core_ms.data["caption"] = ms.data["text"]
+                            else:
+                                core_ms.data["caption"] += ms.data["text"]
+                    else:
+                        core_ms = ms
                 elif ms.type == "markup":
                     inlineKeyboardMarkupArray = ms.data["inline_keyboard"]         
         else:
             core_ms = ms_list[0]
-        if core_ms.type == "text":
-            call_data = {"chat_id": chat_id}
-            if at_sender and isinstance(event,GroupMessageEvent) and event.message.mfrom.username:
-                call_data["text"] = f"@{event.message.mfrom.username} {core_ms.data['text']}"
-            else:
-                call_data["text"] =- core_ms.data["text"]
+        data = {}
+        if core_ms.type == "text" or core_ms.type == "photo":
             if reply_message:
-                call_data["reply_to_message_id"] = event.message.message_id
-            await self.call_api("sendMessage", data=call_data)
+                if event.message:
+                    data["reply_to_message_id"] = event.message.message_id
+                elif event.callback_query.message.reply_to_message:
+                    data["reply_to_message_id"] = event.callback_query.message.reply_to_message["message_id"]
+            if inlineKeyboardMarkupArray:
+                data["reply_markup"] = {}
+                data["reply_markup"]["inline_keyboard"] = inlineKeyboardMarkupArray
+        if core_ms.type == "text":
+            data["chat_id"] = chat_id
+            if at_sender and isinstance(event,GroupMessageEvent):
+                if event.message.mfrom.username:
+                    data["text"] = f"@{event.message.mfrom.username} {core_ms.data['text']}"# some people may not have username
+                else:
+                    data["text"] = f"@{event.message.mfrom.id} {core_ms.data['text']}"#可用性存疑，我猜的
+            else:
+                data["text"] = core_ms.data["text"]
+            await self.call_api("sendMessage", data=data)
         elif core_ms.type == "photo":
+            data["chat_id"] = str(chat_id)
+            if "caption" in core_ms.data:
+                data["caption"] = core_ms.data["caption"]
             if core_ms.data["file"].startswith("file:///"):
                 file_path: str = core_ms.data["file"].lstrip("file:///")
-                file_name = path.basename(file_path)
-                data = {
-                    "chat_id": str(chat_id)
-                }
-                if "caption" in core_ms.data:
-                    data["caption"] = core_ms.data["caption"]
-                if inlineKeyboardMarkupArray:
-                    data["reply_markup"] = {}
-                    data["reply_markup"]["inline_keyboard"] = inlineKeyboardMarkupArray
-                if reply_message:
-                    data["reply_to_message_id"] = event.message.message_id
                 await self.call_multipart_form_data_api("sendPhoto",{"photo": open(file_path,"rb")},data)
             else:
-                data = {
-                    "chat_id": chat_id,
-                    "photo": core_ms.data["file"]
-                }
-                if "caption" in core_ms.data:
-                    data["caption"] = core_ms.data["caption"]
-                if inlineKeyboardMarkupArray:
-                    data["reply_markup"] = {}
-                    data["reply_markup"]["inline_keyboard"] = inlineKeyboardMarkupArray
-                if reply_message:
-                    data["reply_to_message_id"] = event.message.message_id
+                data["photo"] = core_ms.data["file"]
                 await self.call_api("sendPhoto", **{"data":data})

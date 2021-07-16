@@ -50,6 +50,25 @@ class MessageSegment(BaseMessageSegment):
             return MessageSegment("photo", {"file": file, "caption": caption})
         else:
             return MessageSegment("photo", {"file": file})
+    #cqhttp兼容方法
+    @staticmethod
+    def image(file: str,
+              type_: Optional[str] = None,
+              cache: bool = True,
+              proxy: bool = True,
+              timeout: Optional[int] = None) -> "MessageSegment":
+        return MessageSegment(
+            "photo", {
+                "file": file
+            })
+    #cqhttp兼容方法
+    @staticmethod
+    def at(user_id: Union[int, str]) -> "MessageSegment":
+        return MessageSegment("at", {"id": str(user_id)})
+    #cqhttp兼容方法
+    @staticmethod
+    def reply(id_: int) -> "MessageSegment":
+        return MessageSegment("reply", {"id": str(id_)})
     @staticmethod
     def reply_markup(type: str, data:List):
         return MessageSegment("markup",{"type": type, "inline_keyboard": data})

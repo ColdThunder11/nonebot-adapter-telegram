@@ -1,16 +1,17 @@
 # nonebot-adapter-telegram
 （施工中）自己用的非官方nonebot2 telegram adapter，代码全靠糊  
 开发中代码没有经过清理和优化  
-仅支持有限类型的消息解析和发送（接受私聊/群聊文字，发送私聊/群聊文字/图片）  
-需要公网ip或者frp  
+当前仅支持有限类型的消息解析和发送（接受私聊/群聊文字，发送私聊/群聊文字/图片）  
+需要443端口公网ip或者frp  
 ## 使用方法
 如果要试毒的话  
 真的要的话  
 因为只是测试没有打包  
 ```shell
-1.确保已经通过pip安装nonebot2
-2.clone本项目
-3.将本项目中的nonebot/adapters/telegram文件夹复制到python的site-packages/nonebot/adapters中
+pip install nonebot2
+git clone git@github.com:ColdThunder11/nonebot-adapter-telegram.git
+cd nonebot-adapter-telegram
+pip install .
 ```
 ## 上路
 一、 
@@ -24,9 +25,9 @@ webhook_host=your_domain # 配置telegram webhook域名，由于telegram要求we
 bot_token=your_bot_token  #telegram bot token
 ```
 三、
-将域名解析到本机，用你喜欢的方式将该域名443端口的https流量反代到nonebot2的监听端口
+将域名解析到本机，用你喜欢的方式为nonebot2的监听端口配置反代
 四、
-开始写机器人
+开始写机器人（摸鱼）
 
 ## 例子
 bot.py
@@ -53,6 +54,9 @@ echo = on_command("echo",to_me())
 @echo.handle()
 async def echo_escape(bot: Bot, event: MessageEvent):
     await bot.send(message=event.get_message(), event=event)
+
+#await bot.send(message="114514", event=event) #发送文字
+#await bot.send(message=MessageSegment.photo(pic_url)), event=event) #发送图片
 ```
 运行机器人，向bot私聊发送/echo 123，bot会将消息原样重新发送
 
