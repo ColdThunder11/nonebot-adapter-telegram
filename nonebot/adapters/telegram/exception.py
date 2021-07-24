@@ -10,7 +10,7 @@ class TelegramAdapterException(AdapterException):
     """
     :说明:
 
-      钉钉 Adapter 错误基类
+      Telegram Adapter 错误基类
     """
 
     def __init__(self) -> None:
@@ -46,6 +46,8 @@ class ActionFailed(BaseActionFailed, TelegramAdapterException):
 class ApiNotAvailable(BaseApiNotAvailable, TelegramAdapterException):
     pass
 
+class MessageNotAcceptable(BaseActionFailed, TelegramAdapterException):
+  pass
 
 class NetworkError(BaseNetworkError, TelegramAdapterException):
     """
@@ -64,20 +66,6 @@ class NetworkError(BaseNetworkError, TelegramAdapterException):
 
     def __repr__(self):
         return f"<NetWorkError message={self.msg}>"
-
-    def __str__(self):
-        return self.__repr__()
-
-
-class SessionExpired(ApiNotAvailable, TelegramAdapterException):
-    """
-    :说明:
-
-      发消息的 session 已经过期。
-    """
-
-    def __repr__(self) -> str:
-        return f"<Session Webhook is Expired>"
 
     def __str__(self):
         return self.__repr__()

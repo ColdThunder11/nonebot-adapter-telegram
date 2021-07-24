@@ -1,17 +1,13 @@
 # nonebot-adapter-telegram
 （施工中）自己用的非官方nonebot2 telegram adapter，代码全靠糊  
-开发中代码没有经过清理和优化  
-当前仅支持有限类型的消息解析和发送（接受私聊/群聊文字，发送私聊/群聊文字/图片）  
-需要443端口公网ip或者frp  
+开发中代码没有经过清理和优化，不能与官方版本共存  
+当前仅支持有限类型的消息解析和发送（接受私聊/群聊文字/图片，发送私聊/群聊文字/图片/语音，入群事件）  
+需要公网ip或者frp  
 ## 使用方法
 如果要试毒的话  
 真的要的话  
-因为只是测试没有打包  
 ```shell
-pip install nonebot2
-git clone git@github.com:ColdThunder11/nonebot-adapter-telegram.git
-cd nonebot-adapter-telegram
-pip install .
+pip install nonebot2 nonebot-adapter-antelegram
 ```
 ## 上路
 一、 
@@ -25,7 +21,7 @@ webhook_host=your_domain # 配置telegram webhook域名，由于telegram要求we
 bot_token=your_bot_token  #telegram bot token
 ```
 三、
-将域名解析到本机，用你喜欢的方式为nonebot2的监听端口配置反代  
+将域名解析到本机，用你喜欢的方式配置反代将webhook域名的流量转发到nonebot2的监听端口  
 四、
 开始写机器人（摸鱼）
 

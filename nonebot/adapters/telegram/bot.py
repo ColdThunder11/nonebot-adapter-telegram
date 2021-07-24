@@ -5,7 +5,7 @@ from os import path
 
 from datetime import datetime
 import time
-from typing import Any, List, Union, Optional, TYPE_CHECKING
+from typing import Any, List, Union, Optional, TYPE_CHECKING, Union
 
 import httpx
 from nonebot.log import logger
@@ -17,8 +17,10 @@ from nonebot.exception import RequestDenied
 from .utils import log
 from .config import Config as TelegramConfig
 from .message import Message, MessageSegment
-from .exception import NetworkError, ApiNotAvailable, ActionFailed, SessionExpired
-from .event import CallbackQueryEvent, DocumentMessage, Event, GroupMessageEvent, MessageEvent, PhotoSizeItem, PrivateMessageEvent
+from .exception import NetworkError, ApiNotAvailable, ActionFailed
+from .event import CallbackQueryEvent, Event, GroupMessageEvent, MessageEvent, NewChatMembersEvent, PrivateMessageEvent, LeafChatMemberEvent
+
+from .models import *
 
 if TYPE_CHECKING:
     from nonebot.config import Config
@@ -47,7 +49,6 @@ class Bot(BaseBot):
     def register(cls, driver: "Driver", config: "Config"):
         super().register(driver, config)
         cls.telegram_config = TelegramConfig(**config.dict())
-        
         resp = httpx.post(url=f"https://api.telegram.org/bot{cls.telegram_config.bot_token}/deleteWebhook")
         print(resp.json())
         resp = httpx.post(url=f"https://api.telegram.org/bot{cls.telegram_config.bot_token}/setWebhook",
@@ -70,24 +71,30 @@ class Bot(BaseBot):
     async def handle_message(self, message: dict):
         if not message:
             return
-        print
+        print(message)
         try:
             if "callback_query" in message:
                 if message["callback_query"]["from"]["is_bot"]:
                     return
                 event = CallbackQueryEvent.parse_obj(message)
-            
             elif "message" in message:
                 if message["message"]["from"]["is_bot"]:
                     return
+                message["user_id"] = message["message"]["from"]["id"]
                 if message["message"]["chat"]["type"] == "private":
                     event = PrivateMessageEvent.parse_obj(message)
                 elif "group" in message["message"]["chat"]["type"]:
-                    event = GroupMessageEvent.parse_obj(message)
+                    message["group_id"] = message["message"]["chat"]["id"]
+                    if "new_chat_members" in message["message"]:
+                        event = NewChatMembersEvent.parse_obj(message)
+                    elif "left_chat_member" in message["message"]:
+                        event = LeafChatMemberEvent.parse_obj(message)
+                    else:
+                        event = GroupMessageEvent.parse_obj(message)
             else:
                 return
                 #event = MessageEvent.parse_obj(message)
-            self.pre_process_event(event)
+            self._pre_process_event(event)
         except Exception as e:
             log("ERROR", "Event Parser Error", e)
             return
@@ -107,7 +114,10 @@ class Bot(BaseBot):
         if self.connection_type != "http":
             log("ERROR", "Only support http connection.")
             return
-
+        # 将方法名称改为驼峰式 from nonebot/adapter-telegram
+        api = api.split("_", maxsplit=1)[0] + "".join(
+            s.capitalize() for s in api.split("_")[1:]
+        )
         log("DEBUG", f"Calling API <y>{api}</y>")
         print(data)
         headers = {}
@@ -191,7 +201,7 @@ class Bot(BaseBot):
         """
         msg: Message = message if isinstance(message, Message) else Message(message)
         #process Message
-        await self.process_send_message(event, msg, at_sender,reply_message)
+        await self._process_send_message(event, msg, at_sender,reply_message)
 
     async def delete_message(self, chat_id: int, message_id: int) -> None:
         await self.call_api("deleteMessage",data ={"chat_id":chat_id,"message_id":message_id})
@@ -201,6 +211,7 @@ class Bot(BaseBot):
 
     async def call_multipart_form_data_api(self, api:str, file: dict, data: dict):
         log("DEBUG", f"Calling API <y>{api}</y>")
+        print(data)
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(f"https://api.telegram.org/bot{self.telegram_config.bot_token}/{api}",
@@ -209,6 +220,7 @@ class Bot(BaseBot):
                                              timeout=self.config.api_timeout)
             if 200 <= response.status_code < 500:
                 result = response.json()
+                print(result)
                 if isinstance(result, dict):
                     if result.get("ok") != True:
                         raise ActionFailed()
@@ -238,7 +250,7 @@ class Bot(BaseBot):
     async def answer_callback_query(self, event: CallbackQueryEvent) -> None:
         await self.call_api("answerCallbackQuery",data ={"callback_query_id": event.callback_query.id})
 
-    async def delete_orig_message(self, event: CallbackQueryEvent) -> None:
+    async def delete_callback_query_orig_message(self, event: CallbackQueryEvent) -> None:
         await self.delete_message(event.callback_query.message.chat.id,event.callback_query.message.message_id)
 
     async def donload_photo(self, photo: Union[PhotoSizeItem, List[PhotoSizeItem]]) -> bytes:
@@ -252,20 +264,47 @@ class Bot(BaseBot):
         except httpx.HTTPError:
             raise NetworkError("HTTP request failed")
     
-    def pre_process_event(self, event:MessageEvent):
+    def _pre_process_event(self, event:MessageEvent):
         if isinstance(event, GroupMessageEvent):
-            print("pre_process group message")
             if event.message.text:
                 if f"@{self.bot_name}" in event.message.text:
                     event.message.text = event.message.text.replace(f"@{self.bot_name}","").strip()
                     event.to_me = True
                     print(f"event.message.text:{event.message.text}")
     
-    async def process_send_message(self, event:MessageEvent, message: Message, at_sender: bool = False, reply_message: bool = False):
+    def _process_at(self,data:dict,at_user:MessageUser):
+        if "text" in data:
+            if at_user.username:
+                data["text"] = f"@{at_user.username} " + data["text"]
+            else:# some people may not have username
+                data["text"] = f"{at_user.first_name} " + data["text"]#没测试
+                data["entities"] = []
+                data["entities"].append({
+                    "type": "text_mention",
+                    "offset": 0,
+                    "length": len(at_user.first_name),
+                    "user": at_user.dict()
+                })
+        elif "caption" in data:
+            if at_user.username:
+                data["caption"] = f"@{at_user.username} " + data["caption"]
+            else:# some people may not have username
+                data["caption"] = f"{at_user.first_name} " + data["caption"]#没测试
+                data["caption_entities"] = []
+                data["caption_entities"].append({
+                    "type": "text_mention",
+                    "offset": 0,
+                    "length": len(at_user.first_name),
+                    "user": at_user.dict()
+                })
+
+    async def _process_send_message(self, event:MessageEvent, message: Message, at_sender: bool = False, reply_message: bool = False):
         ms_list: List[MessageSegment] = []
         core_ms: MessageSegment = None
         media_message_count: int = 0
+        media_message_list: List[MessageSegment] = []
         inlineKeyboardMarkupArray = None
+        media_tpye = ["photo","audio","document","video","animation","voice","video_note"]
         if event.message:
             chat_id = event.message.chat.id
         elif event.callback_query:
@@ -273,18 +312,15 @@ class Bot(BaseBot):
         for ms in message:
             if ms.type == "photo":
                 media_message_count += 1
+                media_message_list.append(ms)
             ms_list.append(ms)
-        if media_message_count > 1:
-            #send as media group
-            return
-            pass
         if len(ms_list) > 1:
             for ms in ms_list:
-                if ms.type == "photo":
+                if ms.type in media_tpye:
                     core_ms = ms
                 elif ms.type == "text" :
                     if core_ms != None:
-                        if core_ms.type == "photo":
+                        if core_ms.type in media_tpye:
                             if "caption" in core_ms.data:
                                 core_ms.data["caption"] = ms.data["text"]
                             else:
@@ -292,11 +328,47 @@ class Bot(BaseBot):
                     else:
                         core_ms = ms
                 elif ms.type == "markup":
-                    inlineKeyboardMarkupArray = ms.data["inline_keyboard"]         
+                    inlineKeyboardMarkupArray = ms.data["inline_keyboard"]
         else:
             core_ms = ms_list[0]
         data = {}
-        if core_ms.type == "text" or core_ms.type == "photo":
+        files = {}
+        if media_message_count > 1:
+            #send as media group 咕咕咕
+            data["chat_id"] = str(chat_id)
+            data["media"] = []
+            if reply_message:
+                if event.message:
+                    data["reply_to_message_id"] = event.message.message_id
+                elif event.callback_query.message.reply_to_message:
+                    data["reply_to_message_id"] = event.callback_query.message.reply_to_message["message_id"]
+            files = {}
+            for ms in media_message_list:
+                inputMediaPhoto: dict = {"type": "photo"}
+                if "caption" in ms.data:
+                    inputMediaPhoto["caption"] = ms.data["caption"]
+                if ms.data["photo"].startswith("file:///"):
+                    file_path: str = ms.data["photo"].replace("file:///","")
+                    file_name = path.basename(file_path)
+                    inputMediaPhoto["media"] = f"attach://{file_name}"
+                    files[file_name] = open(file_path,"rb")
+                else:
+                    inputMediaPhoto["media"] = ms.data["photo"]
+                data["media"].append(inputMediaPhoto)
+            if len(files.keys()) > 0:
+                await self.call_multipart_form_data_api("sendMediaGroup",files,data)
+            else:
+                await self.call_api("sendMediaGroup",data = data)
+            return
+        print(core_ms)
+        data.update(core_ms.data)
+        if "thumb" in data:
+            if data["thumb"].startswith("file:///"):
+                file_path: str = data["thumb"].replace("file:///","")
+                file_name = path.basename(file_path)
+                data["thumb"] = f"attach://{file_name}"
+                files[file_name] = open(file_path,"rb")
+        if core_ms.type == "text" or core_ms.type in media_tpye:
             if reply_message:
                 if event.message:
                     data["reply_to_message_id"] = event.message.message_id
@@ -308,20 +380,20 @@ class Bot(BaseBot):
         if core_ms.type == "text":
             data["chat_id"] = chat_id
             if at_sender and isinstance(event,GroupMessageEvent):
-                if event.message.mfrom.username:
-                    data["text"] = f"@{event.message.mfrom.username} {core_ms.data['text']}"# some people may not have username
-                else:
-                    data["text"] = f"@{event.message.mfrom.id} {core_ms.data['text']}"#可用性存疑，我猜的
-            else:
-                data["text"] = core_ms.data["text"]
+                self._process_at(data,event.message.from_)
             await self.call_api("sendMessage", data=data)
-        elif core_ms.type == "photo":
+            return
+        if core_ms.type in media_tpye:
             data["chat_id"] = str(chat_id)
             if "caption" in core_ms.data:
-                data["caption"] = core_ms.data["caption"]
-            if core_ms.data["file"].startswith("file:///"):
-                file_path: str = core_ms.data["file"].lstrip("file:///")
-                await self.call_multipart_form_data_api("sendPhoto",{"photo": open(file_path,"rb")},data)
+                if at_sender and isinstance(event,GroupMessageEvent):
+                    self._process_at(data,event.message.from_)
+            if core_ms.data[core_ms.type].startswith("file:///"):
+                del data[core_ms.type]
+                file_path: str = core_ms.data[core_ms.type].replace("file:///","")
+                files[core_ms.type] = open(file_path,"rb")
+            if len(files.keys()) > 0:
+                await self.call_multipart_form_data_api(f"send{core_ms.type[0].upper()+core_ms.type[1:]}",files,data)
             else:
-                data["photo"] = core_ms.data["file"]
-                await self.call_api("sendPhoto", **{"data":data})
+                await self.call_api(f"send{core_ms.type[0].upper()+core_ms.type[1:]}", data=data)
+            return
