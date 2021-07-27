@@ -2,6 +2,8 @@ import json
 import urllib.parse
 import asyncio
 from os import path
+from io import BytesIO
+import base64
 
 from datetime import datetime
 import time
@@ -18,7 +20,7 @@ from .utils import log
 from .config import Config as TelegramConfig
 from .message import Message, MessageSegment
 from .exception import NetworkError, ApiNotAvailable, ActionFailed
-from .event import CallbackQueryEvent, Event, GroupMessageEvent, MessageEvent, NewChatMembersEvent, PrivateMessageEvent, LeafChatMemberEvent
+from .event import CallbackQueryEvent, Event, GroupMessageEvent, MessageEvent, NewChatMembersEvent, PrivateMessageEvent, LeafChatMemberEvent, NewChatTitleEvent, DeleteChatPhotoEvent, VoiceChatEndedEvent, VoiceChatStartedEvent
 
 from .models import *
 
@@ -89,6 +91,12 @@ class Bot(BaseBot):
                         event = NewChatMembersEvent.parse_obj(message)
                     elif "left_chat_member" in message["message"]:
                         event = LeafChatMemberEvent.parse_obj(message)
+                    elif "new_chat_title" in message["message"]:
+                        event = NewChatTitleEvent.parse_obj(message)
+                    elif "voice_chat_started" in message["message"]:
+                        event = VoiceChatStartedEvent.parse_obj(message)
+                    elif "voice_chat_ended" in message["message"]:
+                        event = VoiceChatEndedEvent.parse_obj(message)
                     else:
                         event = GroupMessageEvent.parse_obj(message)
             else:
@@ -321,7 +329,7 @@ class Bot(BaseBot):
                 elif ms.type == "text" :
                     if core_ms != None:
                         if core_ms.type in media_tpye:
-                            if "caption" in core_ms.data:
+                            if not "caption" in core_ms.data:
                                 core_ms.data["caption"] = ms.data["text"]
                             else:
                                 core_ms.data["caption"] += ms.data["text"]
@@ -392,6 +400,11 @@ class Bot(BaseBot):
                 del data[core_ms.type]
                 file_path: str = core_ms.data[core_ms.type].replace("file:///","")
                 files[core_ms.type] = open(file_path,"rb")
+            elif core_ms.data[core_ms.type].startswith("base64://"):
+                del data[core_ms.type]
+                file_data: str = core_ms.data[core_ms.type].replace("base64://","")
+                bio = BytesIO(base64.b64decode(file_data))
+                files[core_ms.type] = bio
             if len(files.keys()) > 0:
                 await self.call_multipart_form_data_api(f"send{core_ms.type[0].upper()+core_ms.type[1:]}",files,data)
             else:

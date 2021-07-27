@@ -84,7 +84,6 @@ class LocationMessage(BaseModel):
     heading: Optional[int]
     proximity_alert_radius: Optional[int]
 
-
 class MessageChat(BaseModel):
     id: int
     type: MessageType
@@ -108,6 +107,96 @@ class MessageChat(BaseModel):
     linked_chat_id: Optional[int]
     location: Optional[LocationMessage]
 
+
+class ChatInviteLink(BaseModel):
+    invite_link: str
+    creator: MessageUser
+    is_primary: bool
+    is_revoked: bool
+    expire_date: Optional[int]
+    member_limit: Optional[int]
+
+class ChatMember(BaseModel):
+    status: str
+    user: MessageUser
+
+
+class ChatMemberOwner(ChatMember):
+    status: str = "creator"
+    is_anonymous: bool
+    custom_title: str
+
+
+class ChatMemberAdministrator(ChatMember):
+    status: str = "administrator"
+    can_be_edited: bool
+    is_anonymous: bool
+    can_manage_chat: bool
+    can_delete_messages: bool
+    can_manage_voice_chats: bool
+    can_restrict_members: bool
+    can_promote_members: bool
+    can_change_info: bool
+    can_invite_users: bool
+    can_post_messages: Optional[bool]
+    can_edit_messages: Optional[bool]
+    can_pin_messages: Optional[bool]
+    custom_title: Optional[str]
+
+
+class ChatMemberMember(ChatMember):
+    status: str = "member"
+
+
+class ChatMemberRestricted(ChatMember):
+    status: str = "restricted"
+    is_member: bool
+    can_change_info: bool
+    can_invite_users: bool
+    can_pin_messages: bool
+    can_send_messages: bool
+    can_send_media_messages: bool
+    can_send_polls: bool
+    can_send_other_messages: bool
+    can_add_web_page_previews: bool
+    until_date: int
+
+
+class ChatMemberLeft(ChatMember):
+    status: str = "left"
+
+
+class ChatMemberBanned(ChatMember):
+    status: str = "kicked"
+
+
+class ChatMemberUpdated(BaseModel):
+    @root_validator(pre=True)
+    def gen_message(cls, values: dict):
+        if "from" in values:
+            values["from_"] = values["from"]
+            del values["from"]
+        return values
+    chat: MessageChat
+    from_: MessageUser 
+    date: int
+    old_chat_member: ChatMember
+    new_chat_member: ChatMember
+    invite_link: Optional[ChatInviteLink]
+
+class ChatMemberUpdated(BaseModel):
+    @root_validator(pre=True)
+    def gen_message(cls, values: dict):
+        if "from" in values:
+            values["from_"] = values["from"]
+            del values["from"]
+        return values
+    chat: MessageChat
+    from_: MessageUser 
+    date: int
+    old_chat_member: ChatMember
+    new_chat_member: ChatMember
+    invite_link: Optional[ChatInviteLink]
 
 class MessageEntitiy(BaseModel):
     offset: int

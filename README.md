@@ -8,7 +8,7 @@
 如果要试毒的话  
 真的要的话  
 ```shell
-pip install nonebot2 nonebot-adapter-antelegram
+pip install nonebot-adapter-antelegram
 ```
 ## 上路
 一、 
@@ -26,7 +26,7 @@ bot_token=your_bot_token  #telegram bot token
 四、
 开始写机器人（摸鱼）
 
-## 例子
+## 最简单的例子
 bot.py
 ```python
 import nonebot
@@ -53,7 +53,7 @@ async def echo_escape(bot: Bot, event: MessageEvent):
     await bot.send(message=event.get_message(), event=event)
 
 #await bot.send(message="114514", event=event) #发送文字
-#await bot.send(message=MessageSegment.photo(pic_url)), event=event) #发送图片
+#await bot.send(message=MessageSegment.photo(pic_url)), event=event) #发送图片 支持file:///，base64://，file_id，url(由Telegram服务器下载)
 ```
 运行机器人，向bot私聊发送/echo 123，bot会将消息原样重新发送
 

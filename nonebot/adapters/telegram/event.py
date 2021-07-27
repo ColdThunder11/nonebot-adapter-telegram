@@ -66,6 +66,9 @@ class MessageEvent(Event):
 
     message_struct: Optional[Message]
 
+    user_id: Optional[int]
+    group_id: Optional[int]
+
     to_me: bool = True
 
     @overrides(Event)
@@ -145,12 +148,13 @@ class MessageEvent(Event):
 
 
 class PrivateMessageEvent(MessageEvent):
+    """私聊消息"""
     pass
 
 
 class GroupMessageEvent(MessageEvent):
+    """群聊消息"""
     to_me = False
-    group_id: int
     # @overrides(MessageEvent)
     # def is_tome(self) -> bool:
     #    return self.isInAtList
@@ -161,9 +165,10 @@ class GroupMessageEvent(MessageEvent):
 
 
 class CallbackQueryEvent(MessageEvent):
+    """CallbackQuery消息"""
     @overrides(Event)
-    def get_type(self):
-        return "callback_query"
+    def get_type(self) -> Literal["message", "notice", "request", "meta_event"]:
+        return "message"
 
     @overrides(Event)
     def get_event_name(self) -> str:
@@ -171,18 +176,23 @@ class CallbackQueryEvent(MessageEvent):
 
     @overrides(Event)
     def get_event_description(self) -> str:
-        return f'Message[{self.get_type()}] {self.callback_query.id} from {self.callback_query.from_.id} "{self.callback_query.data}"'
+        return f'Message[{self.get_event_name()}] {self.callback_query.id} from {self.callback_query.from_.id} "{self.callback_query.data}"'
 
     @overrides(Event)
     def get_plaintext(self) -> str:
         return self.callback_query.data
 
     @overrides(Event)
+    def get_session_id(self) -> str:
+        return f"{self.callback_query.message.chat.id}_{self.callback_query.from_.id}"
+
+    @overrides(Event)
     def get_message(self) -> Message:
-        return Message([{"type": "markup", "data": {"type": "inline"}}])
+        return Message([{"type": "text", "data": {"type": "callback_query", "text": self.callback_query.data}}])
 
 
 class NewChatMembersEvent(MessageEvent):
+    """入群事件"""
     @overrides(Event)
     def get_type(self) -> Literal["message", "notice", "request", "meta_event"]:
         return "notice"
@@ -193,17 +203,18 @@ class NewChatMembersEvent(MessageEvent):
 
     @overrides(Event)
     def get_event_description(self) -> str:
-        return f'Message[{self.get_type()}] {len(self.message.new_chat_members)} new member(s) to {self.message.chat.title}'
+        return f'Message[{self.get_event_name()}] {len(self.message.new_chat_members)} new member(s) to {self.message.chat.title}'
 
     @overrides(Event)
     def get_session_id(self) -> str:
-        return f"group_new_member"
+        return f"{self.message.chat.id}"
 
     def get_members_info(self) -> List[MessageUser]:
         return self.message.new_chat_members
 
 
 class LeafChatMemberEvent(MessageEvent):
+    """退群事件"""
     @overrides(Event)
     def get_type(self) -> Literal["message", "notice", "request", "meta_event"]:
         return "notice"
@@ -215,13 +226,116 @@ class LeafChatMemberEvent(MessageEvent):
     @overrides(Event)
     def get_event_description(self) -> str:
         if self.message.left_chat_member.username:
-            return f'Message[{self.get_type()}] {self.message.left_chat_member.username} leaf {self.message.chat.title}'
+            return f'Message[{self.get_event_name()}] {self.message.left_chat_member.username} leaf chat {self.message.chat.title}'
         else:
-            return f'Message[{self.get_type()}] {self.message.left_chat_member.id} leaf {self.message.chat.title}'
+            return f'Message[{self.get_event_name()}] {self.message.left_chat_member.id} leaf chat {self.message.chat.title}'
 
     @overrides(Event)
     def get_session_id(self) -> str:
-        return f"group_new_member"
+        return f"{self.message.chat.id}"
 
     def get_member_info(self) -> List[MessageUser]:
-        return self.message.new_chat_members
+        return self.message.left_chat_member
+
+class NewChatTitleEvent(MessageEvent):
+    """群名（聊天标题）变更事件"""
+    @overrides(Event)
+    def get_type(self) -> Literal["message", "notice", "request", "meta_event"]:
+        return "notice"
+
+    @overrides(Event)
+    def get_event_name(self) -> str:
+        return f"{self.get_type()}.new_chat_title"
+
+    @overrides(Event)
+    def get_event_description(self) -> str:
+        return f'Message[{self.get_event_name()}] chat {self.message.chat.id} change title to {self.message.chat.title}'
+
+    @overrides(Event)
+    def get_session_id(self) -> str:
+        return f"{self.message.chat.id}"
+
+    def get_chat_name(self) -> str:
+        return self.message.new_chat_title
+
+class NewChatPhotoEvent(MessageEvent):
+    """群头像（聊天头像）变更事件"""
+    @overrides(Event)
+    def get_type(self) -> Literal["message", "notice", "request", "meta_event"]:
+        return "notice"
+
+    @overrides(Event)
+    def get_event_name(self) -> str:
+        return f"{self.get_type()}.new_chat_photo"
+
+    @overrides(Event)
+    def get_event_description(self) -> str:
+        return f'Message[{self.get_event_name()}] chat {self.message.chat.id} change chat photo to {self.message.new_chat_photo[0].file_id}'
+
+    @overrides(Event)
+    def get_session_id(self) -> str:
+        return f"{self.message.chat.id}"
+
+    def get_chat_photo(self) -> PhotoSizeItem:
+        return self.message.new_chat_photo[0]
+
+class DeleteChatPhotoEvent(MessageEvent):
+    """群头像（聊天头像）删除事件"""
+    @overrides(Event)
+    def get_type(self) -> Literal["message", "notice", "request", "meta_event"]:
+        return "notice"
+
+    @overrides(Event)
+    def get_event_name(self) -> str:
+        return f"{self.get_type()}.delete_chat_photo"
+
+    @overrides(Event)
+    def get_event_description(self) -> str:
+        return f'Message[{self.get_event_name()}] chat {self.message.chat.id} delete chat photo'
+
+    @overrides(Event)
+    def get_session_id(self) -> str:
+        return f"{self.message.chat.id}"
+
+class VoiceChatStartedEvent(MessageEvent):
+    """语言聊天开始事件"""
+    @overrides(Event)
+    def get_type(self) -> Literal["message", "notice", "request", "meta_event"]:
+        return "notice"
+
+    @overrides(Event)
+    def get_event_name(self) -> str:
+        return f"{self.get_type()}.voice_chat_started"
+
+    @overrides(Event)
+    def get_event_description(self) -> str:
+        return f'Message[{self.get_event_name()}] chat {self.message.chat.id} start voice chat'
+
+    @overrides(Event)
+    def get_session_id(self) -> str:
+        return f"{self.message.chat.id}"
+
+    def get_voice_chat_started(self) -> VoiceChatStarted:
+        return self.message.voice_chat_started
+
+class VoiceChatEndedEvent(MessageEvent):
+    """语言聊天结束事件"""
+    @overrides(Event)
+    def get_type(self) -> Literal["message", "notice", "request", "meta_event"]:
+        return "notice"
+
+    @overrides(Event)
+    def get_event_name(self) -> str:
+        return f"{self.get_type()}.voice_chat_ended"
+
+    @overrides(Event)
+    def get_event_description(self) -> str:
+        return f'Message[{self.get_event_name()}] chat {self.message.chat.id} start voice chat'
+
+    @overrides(Event)
+    def get_session_id(self) -> str:
+        return f"{self.message.chat.id}"
+
+    def get_voice_chat_ended(self) -> VoiceChatEnded:
+        return self.message.voice_chat_ended
+

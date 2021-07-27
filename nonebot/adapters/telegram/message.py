@@ -119,6 +119,15 @@ class MessageSegment(BaseMessageSegment):
     def reply_markup(type: str, inline_keyboard:List) -> "MessageSegment":
         return MessageSegment("markup",{"type": type, "inline_keyboard": inline_keyboard})
 
+    @staticmethod
+    def sticker(sticker: str, obj:StickerMessage = None, **kwargs) -> "MessageSegment":
+        if obj:
+            return MessageSegment("sticker", obj.dict())
+        ms_dict  = {}
+        ms_dict["sticker"] = sticker
+        ms_dict.update(kwargs)
+        return MessageSegment("sticker", ms_dict)
+
     #cqhttp兼容方法
     @staticmethod
     def image(file: str,
