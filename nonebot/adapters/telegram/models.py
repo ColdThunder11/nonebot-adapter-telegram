@@ -184,20 +184,6 @@ class ChatMemberUpdated(BaseModel):
     new_chat_member: ChatMember
     invite_link: Optional[ChatInviteLink]
 
-class ChatMemberUpdated(BaseModel):
-    @root_validator(pre=True)
-    def gen_message(cls, values: dict):
-        if "from" in values:
-            values["from_"] = values["from"]
-            del values["from"]
-        return values
-    chat: MessageChat
-    from_: MessageUser 
-    date: int
-    old_chat_member: ChatMember
-    new_chat_member: ChatMember
-    invite_link: Optional[ChatInviteLink]
-
 class MessageEntitiy(BaseModel):
     offset: int
     length: int
@@ -260,6 +246,7 @@ class DocumentMessage(BaseModel):
     file_size: int
 
 
+
 class StickerMessage(BaseModel):
     file_id: str
     file_unique_id: str
@@ -272,6 +259,13 @@ class StickerMessage(BaseModel):
     mask_position: Optional[MaskPosition]
     file_size: Optional[int]
 
+class StickerSet(BaseModel):
+    name: str
+    title: str
+    is_animated: bool
+    contains_masks: bool
+    stickers: List[StickerMessage]
+    thumb: Optional[PhotoSizeItem]
 
 class VideoMessage(BaseModel):
     file_id: str
