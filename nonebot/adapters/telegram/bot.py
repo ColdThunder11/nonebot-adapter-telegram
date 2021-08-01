@@ -234,7 +234,7 @@ class Bot(BaseBot):
                         raise ActionFailed()
                     print(result["result"])
                     return result["result"]
-            print(result = response.json())
+            print(result)
             raise NetworkError(f"HTTP request received unexpected "
                                f"status code: {response.status_code}")
         except httpx.InvalidURL:
@@ -261,8 +261,8 @@ class Bot(BaseBot):
     async def delete_callback_query_orig_message(self, event: CallbackQueryEvent) -> None:
         await self.delete_message(event.callback_query.message.chat.id,event.callback_query.message.message_id)
 
-    async def donload_photo(self, photo: Union[PhotoSizeItem, List[PhotoSizeItem]]) -> bytes:
-        download_link = self.get_file_download_link(photo)
+    async def donload_photo(self, photo: Union[str, PhotoSizeItem, List[PhotoSizeItem], DocumentMessage]) -> bytes:
+        download_link = await self.get_file_download_link(photo)
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(download_link, timeout=self.config.api_timeout)
