@@ -1,13 +1,14 @@
 import json
 import urllib.parse
 import asyncio
+import os
 from os import path
 from io import BytesIO
 import base64
 
 from datetime import datetime
 import time
-from typing import Any, List, Union, Optional, TYPE_CHECKING, Union
+from typing import Any, List, Union, Optional, Tuple, TYPE_CHECKING
 
 import httpx
 from nonebot.log import logger
@@ -261,12 +262,16 @@ class Bot(BaseBot):
     async def delete_callback_query_orig_message(self, event: CallbackQueryEvent) -> None:
         await self.delete_message(event.callback_query.message.chat.id,event.callback_query.message.message_id)
 
-    async def donload_photo(self, photo: Union[str, PhotoSizeItem, List[PhotoSizeItem], DocumentMessage]) -> bytes:
+    async def donload_file(self, photo: Union[str, PhotoSizeItem, List[PhotoSizeItem], DocumentMessage]) -> Tuple[str, bytes] :
         download_link = await self.get_file_download_link(photo)
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(download_link, timeout=self.config.api_timeout)
-                return response.content
+                i = response.aiter_bytes()
+                content_list = []
+                async for content_bytes in response.aiter_bytes():
+                    content_list.append(content_bytes)
+                return (path.basename(download_link) , b''.join(content_list))
         except httpx.InvalidURL:
             raise NetworkError("File url invalid")
         except httpx.HTTPError:
@@ -356,7 +361,10 @@ class Bot(BaseBot):
                 if "caption" in ms.data:
                     inputMediaPhoto["caption"] = ms.data["caption"]
                 if ms.data["photo"].startswith("file:///"):
-                    file_path: str = ms.data["photo"].replace("file:///","")
+                    if os.name == "nt":
+                        file_path: str = core_ms.data[core_ms.type].replace("file:///","")
+                    else:
+                        file_path: str = core_ms.data[core_ms.type].replace("file://","")
                     file_name = path.basename(file_path)
                     inputMediaPhoto["media"] = f"attach://{file_name}"
                     files[file_name] = open(file_path,"rb")
@@ -398,7 +406,10 @@ class Bot(BaseBot):
                     self._process_at(data,event.message.from_)
             if core_ms.data[core_ms.type].startswith("file:///"):
                 del data[core_ms.type]
-                file_path: str = core_ms.data[core_ms.type].replace("file:///","")
+                if os.name == "nt":
+                    file_path: str = core_ms.data[core_ms.type].replace("file:///","")
+                else:
+                    file_path: str = core_ms.data[core_ms.type].replace("file://","")
                 files[core_ms.type] = open(file_path,"rb")
             elif core_ms.data[core_ms.type].startswith("base64://"):
                 del data[core_ms.type]

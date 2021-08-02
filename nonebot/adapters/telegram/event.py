@@ -159,9 +159,9 @@ class GroupMessageEvent(MessageEvent):
     # def is_tome(self) -> bool:
     #    return self.isInAtList
 
-    @overrides(Event)
-    def get_session_id(self) -> str:
-        return f"group_{self.message.chat.id}_{self.message.from_.id}"
+    #@overrides(Event)
+    #def get_session_id(self) -> str:
+    #    return f"group_{self.message.chat.id}_{self.message.from_.id}"
 
 
 class CallbackQueryEvent(MessageEvent):
