@@ -52,7 +52,6 @@ class Event(BaseEvent):
     def is_tome(self) -> bool:
         return True
 
-
 class MessageEvent(Event):
     """消息事件"""
     update_id: int
@@ -83,45 +82,54 @@ class MessageEvent(Event):
     def get_event_description(self) -> str:
         return f'Message[{self.message.chat.type}] {self.message.message_id} from {self.message.from_.id} in {self.message.chat.id} "{self.get_plaintext()}"'
 
-    def get_message_struct(self) -> Message:
-        if self.message.text:
-            return Message(self.message.text)
+    def get_message_struct_in_message(self,message: MessageBody) -> Message:
+        if message.text:
+            return Message(message.text)
         data = {}
-        if self.message.caption:
-            data["caption"] = self.message.caption
-        if self.message.photo:
-            data.update(self.message.photo[0].dict())
-            data["photo"] = self.message.photo[0].file_id
+        if message.caption:
+            data["caption"] = message.caption
+        if message.photo:
+            data.update(message.photo[0].dict())
+            data["photo"] = message.photo[0].file_id
             return Message([{"type": "photo", "data": data}])
-        elif self.message.document:
-            data.update(self.message.document.dict())
-            data["document"] = self.message.document.file_id
+        elif message.document:
+            data.update(message.document.dict())
+            data["document"] = message.document.file_id
             return Message([{"type": "document", "data": data}])
-        elif self.message.sticker:
-            data.update(self.message.sticker.dict())
-            data["sticker"] = self.message.sticker.file_id
+        elif message.sticker:
+            data.update(message.sticker.dict())
+            data["sticker"] = message.sticker.file_id
             return Message([{"type": "sticker", "data": data}])
-        elif self.message.voice:
-            data.update(self.message.voice.dict())
-            data["voice"] = self.message.voice.file_id
+        elif message.voice:
+            data.update(message.voice.dict())
+            data["voice"] = message.voice.file_id
             return Message([{"type": "voice", "data": data}])
-        elif self.message.audio:
-            data.update(self.message.audio.dict())
-            data["audio"] = self.message.audio.file_id
+        elif message.audio:
+            data.update(message.audio.dict())
+            data["audio"] = message.audio.file_id
             return Message([{"type": "audio", "data": data}])
-        elif self.message.animation:
-            data.update(self.message.animation.dict())
-            data["animation"] = self.message.animation.file_id
+        elif message.animation:
+            data.update(message.animation.dict())
+            data["animation"] = message.animation.file_id
             return Message([{"type": "animation", "data": data}])
-        elif self.message.video:
-            data.update(self.message.video.dict())
-            data["video"] = self.message.video.file_id
+        elif message.video:
+            data.update(message.video.dict())
+            data["video"] = message.video.file_id
             return Message([{"type": "video", "data": data}])
-        elif self.message.video_note:
-            data.update(self.message.video_note.dict())
-            data["video_note"] = self.message.video_note.file_id
+        elif message.video_note:
+            data.update(message.video_note.dict())
+            data["video_note"] = message.video_note.file_id
             return Message([{"type": "video_note", "data": data}])
-        return Message("")
+        return None
+
+    def get_message_struct(self) -> Message:
+        ret_msg: MessageBody = None
+        if ret_msg := self.get_message_struct_in_message(self.message):
+            return ret_msg
+        elif ret_msg := self.get_message_struct_in_message(MessageBody.parse_obj(self.message.reply_to_message)):
+            return ret_msg
+        else:
+            return Message("")
 
     @overrides(Event)
     def get_message(self) -> Message:
@@ -146,11 +154,9 @@ class MessageEvent(Event):
     def is_tome(self) -> bool:
         return self.to_me
 
-
 class PrivateMessageEvent(MessageEvent):
     """私聊消息"""
     pass
-
 
 class GroupMessageEvent(MessageEvent):
     """群聊消息"""
@@ -162,7 +168,6 @@ class GroupMessageEvent(MessageEvent):
     #@overrides(Event)
     #def get_session_id(self) -> str:
     #    return f"group_{self.message.chat.id}_{self.message.from_.id}"
-
 
 class CallbackQueryEvent(MessageEvent):
     """CallbackQuery消息"""
@@ -190,7 +195,6 @@ class CallbackQueryEvent(MessageEvent):
     def get_message(self) -> Message:
         return Message([{"type": "text", "data": {"type": "callback_query", "text": self.callback_query.data}}])
 
-
 class NewChatMembersEvent(MessageEvent):
     """入群事件"""
     @overrides(Event)
@@ -211,7 +215,6 @@ class NewChatMembersEvent(MessageEvent):
 
     def get_members_info(self) -> List[MessageUser]:
         return self.message.new_chat_members
-
 
 class LeafChatMemberEvent(MessageEvent):
     """退群事件"""

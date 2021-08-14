@@ -1,5 +1,5 @@
 from copy import copy
-from typing import Any, Dict, List, Optional, Union, Mapping, Iterable
+from typing import Any, Dict, List, Type, Optional, Union, Mapping, Iterable
 
 from functools import reduce
 
@@ -19,10 +19,15 @@ reply_markup（仅发送）：{"type": "markup", "data": {"type": "inline"(现�
 '''          
 
 
-class MessageSegment(BaseMessageSegment):
+class MessageSegment(BaseMessageSegment["Message"]):
     """
     telegram 协议 MessageSegment 适配。
     """
+
+    @classmethod
+    @overrides(BaseMessageSegment)
+    def get_message_class(cls) -> Type["Message"]:
+        return Message
 
     @overrides(BaseMessageSegment)
     def __init__(self, type_: str, data: Dict[str, Any]) -> None:
@@ -53,9 +58,12 @@ class MessageSegment(BaseMessageSegment):
         return self.type == "text"
     
     @staticmethod
-    def text(text: str) -> "MessageSegment":
+    def text(text: str, **kwargs) -> "MessageSegment":
         """发送 ``text`` 类型消息"""
-        return MessageSegment("text", {"text": text})
+        ms_dict  = {}
+        ms_dict["text"] = text
+        ms_dict.update(kwargs)
+        return MessageSegment("text", ms_dict)
 
     @staticmethod
     def photo(photo: str, caption: str = None, obj: SendPhoto = None, **kwargs) -> "MessageSegment":

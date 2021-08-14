@@ -15,7 +15,8 @@ from nonebot.log import logger
 from nonebot.typing import overrides
 from nonebot.message import handle_event
 from nonebot.adapters import Bot as BaseBot
-from nonebot.exception import RequestDenied
+from nonebot.drivers import Driver, HTTPConnection, HTTPResponse
+#from nonebot.exception import RequestDenied
 
 from .utils import log
 from .config import Config as TelegramConfig
@@ -37,9 +38,9 @@ class Bot(BaseBot):
     telegram_config: TelegramConfig
     bot_name: str
 
-    def __init__(self, connection_type: str, self_id: str, **kwargs):
+    def __init__(self, self_id: str, request: HTTPConnection, **kwargs):
 
-        super().__init__(connection_type, self_id, **kwargs)
+        super().__init__(self_id, request)
 
     @property
     def type(self) -> str:
@@ -49,57 +50,57 @@ class Bot(BaseBot):
         return "telegram"
 
     @classmethod
-    def register(cls, driver: "Driver", config: "Config"):
+    def register(cls, driver: "Driver", config: "Config", **kwargs):
         super().register(driver, config)
         cls.telegram_config = TelegramConfig(**config.dict())
-        resp = httpx.post(url=f"https://api.telegram.org/bot{cls.telegram_config.bot_token}/deleteWebhook")
+        resp = httpx.post(url=f"{cls.telegram_config.telegram_bot_api_server_addr}/bot{cls.telegram_config.bot_token}/deleteWebhook")
         print(resp.json())
-        resp = httpx.post(url=f"https://api.telegram.org/bot{cls.telegram_config.bot_token}/setWebhook",
+        resp = httpx.post(url=f"{cls.telegram_config.telegram_bot_api_server_addr}/bot{cls.telegram_config.bot_token}/setWebhook",
         json={
-            "url": f"https://{cls.telegram_config.webhook_host}/{cls.telegram_config.bot_token}/",
+            "url": f"{cls.telegram_config.webhook_addr}/{cls.telegram_config.bot_token}/",
             "allowed_updates": ["message","callback_query"]
         })
         print(resp.json())
-        resp = httpx.post(url=f"https://api.telegram.org/bot{cls.telegram_config.bot_token}/getMe")
+        resp = httpx.post(url=f"{cls.telegram_config.telegram_bot_api_server_addr}/bot{cls.telegram_config.bot_token}/getMe")
         cls.bot_name = resp.json()["result"]["username"]
         print("telegarm init success")
 
     @classmethod
     @overrides(BaseBot)
-    async def check_permission(cls, driver: "Driver", connection_type: str,
-                               headers: dict, body: Optional[bytes]) -> str:
-        return cls.bot_name
+    async def check_permission(cls, driver: "Driver", request: HTTPConnection) -> Tuple[Optional[str], Optional[HTTPResponse]]:
+        return cls.bot_name, None
 
     @overrides(BaseBot) 
-    async def handle_message(self, message: dict):
+    async def handle_message(self, message: bytes):
         if not message:
             return
-        print(message)
+        message_dict = json.loads(message) 
+        print(message_dict)
         try:
-            if "callback_query" in message:
-                if message["callback_query"]["from"]["is_bot"]:
+            if "callback_query" in message_dict:
+                if message_dict["callback_query"]["from"]["is_bot"]:
                     return
-                event = CallbackQueryEvent.parse_obj(message)
-            elif "message" in message:
-                if message["message"]["from"]["is_bot"]:
+                event = CallbackQueryEvent.parse_obj(message_dict)
+            elif "message" in message_dict:
+                if message_dict["message"]["from"]["is_bot"]:
                     return
-                message["user_id"] = message["message"]["from"]["id"]
-                if message["message"]["chat"]["type"] == "private":
-                    event = PrivateMessageEvent.parse_obj(message)
-                elif "group" in message["message"]["chat"]["type"]:
-                    message["group_id"] = message["message"]["chat"]["id"]
-                    if "new_chat_members" in message["message"]:
-                        event = NewChatMembersEvent.parse_obj(message)
-                    elif "left_chat_member" in message["message"]:
-                        event = LeafChatMemberEvent.parse_obj(message)
-                    elif "new_chat_title" in message["message"]:
-                        event = NewChatTitleEvent.parse_obj(message)
-                    elif "voice_chat_started" in message["message"]:
-                        event = VoiceChatStartedEvent.parse_obj(message)
-                    elif "voice_chat_ended" in message["message"]:
-                        event = VoiceChatEndedEvent.parse_obj(message)
+                message_dict["user_id"] = message_dict["message"]["from"]["id"]
+                message_dict["group_id"] = message_dict["message"]["chat"]["id"]
+                if message_dict["message"]["chat"]["type"] == "private":
+                    event = PrivateMessageEvent.parse_obj(message_dict)
+                elif "group" in message_dict["message"]["chat"]["type"]:
+                    if "new_chat_members" in message_dict["message"]:
+                        event = NewChatMembersEvent.parse_obj(message_dict)
+                    elif "left_chat_member" in message_dict["message"]:
+                        event = LeafChatMemberEvent.parse_obj(message_dict)
+                    elif "new_chat_title" in message_dict["message"]:
+                        event = NewChatTitleEvent.parse_obj(message_dict)
+                    elif "voice_chat_started" in message_dict["message"]:
+                        event = VoiceChatStartedEvent.parse_obj(message_dict)
+                    elif "voice_chat_ended" in message_dict["message"]:
+                        event = VoiceChatEndedEvent.parse_obj(message_dict)
                     else:
-                        event = GroupMessageEvent.parse_obj(message)
+                        event = GroupMessageEvent.parse_obj(message_dict)
             else:
                 return
                 #event = MessageEvent.parse_obj(message)
@@ -120,22 +121,22 @@ class Bot(BaseBot):
     async def _call_api(self,
                         api: str,
                         **data) -> Any:
-        if self.connection_type != "http":
-            log("ERROR", "Only support http connection.")
-            return
+        #if self.connection_type != "http":
+        #    log("ERROR", "Only support http connection.")
+        #    return
         # 将方法名称改为驼峰式 from nonebot/adapter-telegram
         api = api.split("_", maxsplit=1)[0] + "".join(
             s.capitalize() for s in api.split("_")[1:]
         )
         log("DEBUG", f"Calling API <y>{api}</y>")
-        print(data)
+        #print(data)
         headers = {}
         data: dict = data.get("data", None)
         if not data:
             raise ValueError("data not found")
         try:
             async with httpx.AsyncClient(headers=headers) as client:
-                response = await client.post(f"https://api.telegram.org/bot{self.telegram_config.bot_token}/{api}",
+                response = await client.post(f"{self.telegram_config.telegram_bot_api_server_addr}/bot{self.telegram_config.bot_token}/{api}",
                                              json=data,
                                              timeout=self.config.api_timeout)
             if 200 <= response.status_code < 500:
@@ -144,7 +145,7 @@ class Bot(BaseBot):
                     if result.get("ok") != True:
                         print(result)
                         raise ActionFailed()
-                    print(result["result"])
+                    #print(result["result"])
                     return result["result"]
             raise NetworkError(f"HTTP request received unexpected "
                                f"status code: {response.status_code}")
@@ -221,6 +222,11 @@ class Bot(BaseBot):
     async def call_multipart_form_data_api(self, api:str, file: dict, data: dict):
         log("DEBUG", f"Calling API <y>{api}</y>")
         print(data)
+        for key in data:
+            if isinstance(data[key],int) or isinstance(data[key],float) :
+                data[key] = str(data[key])
+            elif not isinstance(data[key],str):
+                data[key] = json.dumps(data[key])
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(f"https://api.telegram.org/bot{self.telegram_config.bot_token}/{api}",
@@ -376,7 +382,7 @@ class Bot(BaseBot):
             else:
                 await self.call_api("sendMediaGroup",data = data)
             return
-        print(core_ms)
+        #print(core_ms)
         data.update(core_ms.data)
         if "thumb" in data:
             if data["thumb"].startswith("file:///"):
@@ -415,7 +421,10 @@ class Bot(BaseBot):
                 del data[core_ms.type]
                 file_data: str = core_ms.data[core_ms.type].replace("base64://","")
                 bio = BytesIO(base64.b64decode(file_data))
-                files[core_ms.type] = bio
+                if "file_name" in core_ms.data:
+                    files[core_ms.type] = (core_ms.data["file_name"], bio)
+                else:
+                    files[core_ms.type] = bio
             if len(files.keys()) > 0:
                 await self.call_multipart_form_data_api(f"send{core_ms.type[0].upper()+core_ms.type[1:]}",files,data)
             else:

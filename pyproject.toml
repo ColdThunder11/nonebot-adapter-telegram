@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nonebot-adapter-antelegram"
-version = "0.1.0-dev6"
+version = "0.1.0-dev7"
 description = "Another unofficial Telegram adapter for nonebot2"
 authors = ["ColdThunder11 <lslyj27761@gmail.com>"]
 license = "MIT"
@@ -22,8 +22,11 @@ exclude = ["nonebot/__init__.py", "nonebot/adapters/__init__.py"]
 
 [tool.poetry.dependencies]
 python = "^3.7.3"
-httpx = "^0.17.0"
-nonebot2 = "^2.0.0a13.post1"
+httpx = "^0.18.0"
+nonebot2 = "^2.0.0a15"
+
+[tool.poetry.dev-dependencies]
+nonebot2 = { path = "../../", develop = true }
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
