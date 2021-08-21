@@ -229,7 +229,7 @@ class Bot(BaseBot):
                 data[key] = json.dumps(data[key])
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.post(f"https://api.telegram.org/bot{self.telegram_config.bot_token}/{api}",
+                response = await client.post(f"{self.telegram_config.telegram_bot_api_server_addr}/bot{self.telegram_config.bot_token}/{api}",
                                              files=file,
                                              data=data,
                                              timeout=self.config.api_timeout)
@@ -260,7 +260,7 @@ class Bot(BaseBot):
         elif isinstance(file, str):
             file_id = file
         result = await self.call_api("getFile", data = {"file_id": file_id})
-        return f"https://api.telegram.org/file/bot{self.telegram_config.bot_token}/{result['file_path']}"
+        return f"{self.telegram_config.telegram_bot_api_server_addr}/file/bot{self.telegram_config.bot_token}/{result['file_path']}"
     
     async def answer_callback_query(self, event: CallbackQueryEvent) -> None:
         await self.call_api("answerCallbackQuery",data ={"callback_query_id": event.callback_query.id})
