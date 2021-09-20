@@ -18,11 +18,11 @@ pip install nonebot-adapter-antelegram
 ```shell
 host=127.0.0.1 # 配置 NoneBot 监听的 IP / 主机名  
 port=xxxxx     # 配置 NoneBot 监听的端口  
-webhook_host=your_domain # 配置telegram webhook域名，由于telegram要求webhook地址必须为https，我们需要在之后配置反向代理  
+webhook_host=your_domain # 配置telegram webhook域名，由于telegram要求webhook地址必须为https，我们需要在之后配置反向代理，也可以参考telegram文档自建本地bot api  
 bot_token=your_bot_token  #telegram bot token
 ```
 三、
-将域名解析到本机，用你喜欢的方式配置反代将webhook域名的流量转发到nonebot2的监听端口  
+将域名解析到本机，用你喜欢的方式配置反代将webhook域名的流量转发到nonebot2的监听端口（如果不使用本地bot api）  
 四、
 开始写机器人（摸鱼）
 
