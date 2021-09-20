@@ -37,6 +37,7 @@ class Bot(BaseBot):
     """
     telegram_config: TelegramConfig
     bot_name: str
+    self_id: str
 
     def __init__(self, self_id: str, request: HTTPConnection, **kwargs):
 
@@ -54,16 +55,19 @@ class Bot(BaseBot):
         super().register(driver, config)
         cls.telegram_config = TelegramConfig(**config.dict())
         resp = httpx.post(url=f"{cls.telegram_config.telegram_bot_api_server_addr}/bot{cls.telegram_config.bot_token}/deleteWebhook")
-        print(resp.json())
+        log("info",resp.json())
         resp = httpx.post(url=f"{cls.telegram_config.telegram_bot_api_server_addr}/bot{cls.telegram_config.bot_token}/setWebhook",
         json={
             "url": f"{cls.telegram_config.webhook_addr}/{cls.telegram_config.bot_token}/",
             "allowed_updates": ["message","callback_query"]
         })
-        print(resp.json())
+        log("info",resp.json())
         resp = httpx.post(url=f"{cls.telegram_config.telegram_bot_api_server_addr}/bot{cls.telegram_config.bot_token}/getMe")
         cls.bot_name = resp.json()["result"]["username"]
-        print("telegarm init success")
+        cls.self_id = cls.bot_name
+        log("info","telegarm init success")
+        #driver._bot_connect(cls)
+        #driver._clients[cls.self_id] = cls
 
     @classmethod
     @overrides(BaseBot)
@@ -260,7 +264,10 @@ class Bot(BaseBot):
         elif isinstance(file, str):
             file_id = file
         result = await self.call_api("getFile", data = {"file_id": file_id})
-        return f"{self.telegram_config.telegram_bot_api_server_addr}/file/bot{self.telegram_config.bot_token}/{result['file_path']}"
+        if result['file_path'].startswith("/"): #local bot api
+            return result['file_path']
+        else:
+            return f"{self.telegram_config.telegram_bot_api_server_addr}/file/bot{self.telegram_config.bot_token}/{result['file_path']}"
     
     async def answer_callback_query(self, event: CallbackQueryEvent) -> None:
         await self.call_api("answerCallbackQuery",data ={"callback_query_id": event.callback_query.id})
@@ -270,18 +277,22 @@ class Bot(BaseBot):
 
     async def donload_file(self, photo: Union[str, PhotoSizeItem, List[PhotoSizeItem], DocumentMessage]) -> Tuple[str, bytes] :
         download_link = await self.get_file_download_link(photo)
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(download_link, timeout=self.config.api_timeout)
-                i = response.aiter_bytes()
-                content_list = []
-                async for content_bytes in response.aiter_bytes():
-                    content_list.append(content_bytes)
-                return (path.basename(download_link) , b''.join(content_list))
-        except httpx.InvalidURL:
-            raise NetworkError("File url invalid")
-        except httpx.HTTPError:
-            raise NetworkError("HTTP request failed")
+        if download_link.startswith("/"):
+            with open(download_link, "rb") as fp:
+                return (path.basename(download_link), fp.read()) 
+        else:
+            try:
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(download_link, timeout=self.config.api_timeout)
+                    i = response.aiter_bytes()
+                    content_list = []
+                    async for content_bytes in response.aiter_bytes():
+                        content_list.append(content_bytes)
+                    return (path.basename(download_link) , b''.join(content_list))
+            except httpx.InvalidURL:
+                raise NetworkError("File url invalid")
+            except httpx.HTTPError:
+                raise NetworkError("HTTP request failed")
     
     def _pre_process_event(self, event:MessageEvent):
         if isinstance(event, GroupMessageEvent):
@@ -367,10 +378,7 @@ class Bot(BaseBot):
                 if "caption" in ms.data:
                     inputMediaPhoto["caption"] = ms.data["caption"]
                 if ms.data["photo"].startswith("file:///"):
-                    if os.name == "nt":
-                        file_path: str = core_ms.data[core_ms.type].replace("file:///","")
-                    else:
-                        file_path: str = core_ms.data[core_ms.type].replace("file://","")
+                    file_path: str = core_ms.data[core_ms.type].replace("file:///","")
                     file_name = path.basename(file_path)
                     inputMediaPhoto["media"] = f"attach://{file_name}"
                     files[file_name] = open(file_path,"rb")
@@ -412,10 +420,7 @@ class Bot(BaseBot):
                     self._process_at(data,event.message.from_)
             if core_ms.data[core_ms.type].startswith("file:///"):
                 del data[core_ms.type]
-                if os.name == "nt":
-                    file_path: str = core_ms.data[core_ms.type].replace("file:///","")
-                else:
-                    file_path: str = core_ms.data[core_ms.type].replace("file://","")
+                file_path: str = core_ms.data[core_ms.type].replace("file:///","")
                 files[core_ms.type] = open(file_path,"rb")
             elif core_ms.data[core_ms.type].startswith("base64://"):
                 del data[core_ms.type]

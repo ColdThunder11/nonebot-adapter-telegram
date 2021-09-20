@@ -247,7 +247,7 @@ class DocumentMessage(BaseModel):
 
 
 
-class StickerMessage(BaseModel):
+class Sticker(BaseModel):
     file_id: str
     file_unique_id: str
     width: int
@@ -264,7 +264,7 @@ class StickerSet(BaseModel):
     title: str
     is_animated: bool
     contains_masks: bool
-    stickers: List[StickerMessage]
+    stickers: List[Sticker]
     thumb: Optional[PhotoSizeItem]
 
 class VideoMessage(BaseModel):
@@ -467,7 +467,7 @@ class MessageBody(BaseModel):
     audio: Optional[AudioMessage]
     document: Optional[DocumentMessage]
     photo: Optional[List[PhotoSizeItem]]
-    sticker: Optional[StickerMessage]
+    sticker: Optional[Sticker]
     video: Optional[VideoMessage]
     video_note: Optional[VideoNoteMessage]
     voice: Optional[VoiceMessage]

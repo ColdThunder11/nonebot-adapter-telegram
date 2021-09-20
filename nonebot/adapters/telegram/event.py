@@ -4,12 +4,11 @@ from re import S
 from ssl import OP_ALL
 from typing import Dict, List, Optional, Text, Union
 from typing_extensions import Literal
-
+from typing import Any
 from pydantic import BaseModel, root_validator
 
 from nonebot.typing import overrides
 from nonebot.adapters import Event as BaseEvent
-from typing import Any
 
 from .message import Message, MessageSegment
 from .models import *
@@ -52,6 +51,7 @@ class Event(BaseEvent):
     def is_tome(self) -> bool:
         return True
 
+
 class MessageEvent(Event):
     """消息事件"""
     update_id: int
@@ -82,7 +82,7 @@ class MessageEvent(Event):
     def get_event_description(self) -> str:
         return f'Message[{self.message.chat.type}] {self.message.message_id} from {self.message.from_.id} in {self.message.chat.id} "{self.get_plaintext()}"'
 
-    def get_message_struct_in_message(self,message: MessageBody) -> Message:
+    def get_message_struct_in_message(self, message: MessageBody) -> Message:
         if message.text:
             return Message(message.text)
         data = {}
@@ -144,7 +144,7 @@ class MessageEvent(Event):
 
     @overrides(Event)
     def get_user_id(self) -> str:
-        return self.message.from_.id
+        return str(self.message.from_.id)
 
     @overrides(Event)
     def get_session_id(self) -> str:
@@ -154,9 +154,11 @@ class MessageEvent(Event):
     def is_tome(self) -> bool:
         return self.to_me
 
+
 class PrivateMessageEvent(MessageEvent):
     """私聊消息"""
     pass
+
 
 class GroupMessageEvent(MessageEvent):
     """群聊消息"""
@@ -165,9 +167,10 @@ class GroupMessageEvent(MessageEvent):
     # def is_tome(self) -> bool:
     #    return self.isInAtList
 
-    #@overrides(Event)
-    #def get_session_id(self) -> str:
+    # @overrides(Event)
+    # def get_session_id(self) -> str:
     #    return f"group_{self.message.chat.id}_{self.message.from_.id}"
+
 
 class CallbackQueryEvent(MessageEvent):
     """CallbackQuery消息"""
@@ -195,6 +198,7 @@ class CallbackQueryEvent(MessageEvent):
     def get_message(self) -> Message:
         return Message([{"type": "text", "data": {"type": "callback_query", "text": self.callback_query.data}}])
 
+
 class NewChatMembersEvent(MessageEvent):
     """入群事件"""
     @overrides(Event)
@@ -215,6 +219,7 @@ class NewChatMembersEvent(MessageEvent):
 
     def get_members_info(self) -> List[MessageUser]:
         return self.message.new_chat_members
+
 
 class LeafChatMemberEvent(MessageEvent):
     """退群事件"""
@@ -240,6 +245,7 @@ class LeafChatMemberEvent(MessageEvent):
     def get_member_info(self) -> List[MessageUser]:
         return self.message.left_chat_member
 
+
 class NewChatTitleEvent(MessageEvent):
     """群名（聊天标题）变更事件"""
     @overrides(Event)
@@ -260,6 +266,7 @@ class NewChatTitleEvent(MessageEvent):
 
     def get_chat_name(self) -> str:
         return self.message.new_chat_title
+
 
 class NewChatPhotoEvent(MessageEvent):
     """群头像（聊天头像）变更事件"""
@@ -282,6 +289,7 @@ class NewChatPhotoEvent(MessageEvent):
     def get_chat_photo(self) -> PhotoSizeItem:
         return self.message.new_chat_photo[0]
 
+
 class DeleteChatPhotoEvent(MessageEvent):
     """群头像（聊天头像）删除事件"""
     @overrides(Event)
@@ -299,6 +307,7 @@ class DeleteChatPhotoEvent(MessageEvent):
     @overrides(Event)
     def get_session_id(self) -> str:
         return f"{self.message.chat.id}"
+
 
 class VoiceChatStartedEvent(MessageEvent):
     """语言聊天开始事件"""
@@ -321,6 +330,7 @@ class VoiceChatStartedEvent(MessageEvent):
     def get_voice_chat_started(self) -> VoiceChatStarted:
         return self.message.voice_chat_started
 
+
 class VoiceChatEndedEvent(MessageEvent):
     """语言聊天结束事件"""
     @overrides(Event)
@@ -341,4 +351,3 @@ class VoiceChatEndedEvent(MessageEvent):
 
     def get_voice_chat_ended(self) -> VoiceChatEnded:
         return self.message.voice_chat_ended
-

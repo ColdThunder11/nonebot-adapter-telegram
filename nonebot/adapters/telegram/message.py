@@ -1,6 +1,8 @@
 from copy import copy
+from io import BytesIO
+from pathlib import Path
 from typing import Any, Dict, List, Type, Optional, Union, Mapping, Iterable
-
+from base64 import b64encode
 from functools import reduce
 
 from pydantic.main import BaseModel
@@ -66,10 +68,16 @@ class MessageSegment(BaseMessageSegment["Message"]):
         return MessageSegment("text", ms_dict)
 
     @staticmethod
-    def photo(photo: str, caption: str = None, obj: SendPhoto = None, **kwargs) -> "MessageSegment":
+    def photo(photo: Union[str, bytes, BytesIO, Path], caption: str = None, obj: SendPhoto = None, **kwargs) -> "MessageSegment":
         if obj:
             return MessageSegment("photo", obj.dict())
         ms_dict  = {}
+        if isinstance(photo, BytesIO):
+            photo = photo.read()
+        if isinstance(photo, bytes):
+            photo = f"base64://{b64encode(photo).decode()}"
+        elif isinstance(photo, Path):
+            photo = f"file:///{photo.resolve()}"
         ms_dict["photo"] = photo
         ms_dict.update(kwargs)
         if caption:
@@ -128,7 +136,7 @@ class MessageSegment(BaseMessageSegment["Message"]):
         return MessageSegment("markup",{"type": type, "inline_keyboard": inline_keyboard})
 
     @staticmethod
-    def sticker(sticker: str, obj:StickerMessage = None, **kwargs) -> "MessageSegment":
+    def sticker(sticker: str, obj:Sticker = None, **kwargs) -> "MessageSegment":
         if obj:
             return MessageSegment("sticker", obj.dict())
         ms_dict  = {}
@@ -138,15 +146,12 @@ class MessageSegment(BaseMessageSegment["Message"]):
 
     #cqhttp兼容方法
     @staticmethod
-    def image(file: str,
+    def image(file: Union[str, bytes, BytesIO, Path],
               type_: Optional[str] = None,
               cache: bool = True,
               proxy: bool = True,
               timeout: Optional[int] = None) -> "MessageSegment":
-        return MessageSegment(
-            "photo", {
-                "photo": file
-            })
+        return MessageSegment.photo(file)
     #cqhttp兼容方法
     @staticmethod
     def at(user_id: Union[int, str]) -> "MessageSegment":
