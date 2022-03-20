@@ -37,15 +37,14 @@ class MessageSegment(BaseMessageSegment["Message"]):
         self.data = data
         #super().__init__(type=type_, data=data)
 
-    @overrides(BaseMessageSegment)
+    @overrides(BaseMessageSegment) #break change
     def __str__(self) -> str:
         if self.type == "text":
             return str(self.data["text"])
         type_ = self.type
         data = self.data.copy()
-        params = ",".join(
-            [f"{k}={str(v)}" for k, v in data.items() if v is not None])
-        return f"[TG:{type_}{',' if params else ''}{params}]"
+        str_dict = {"type":type_, "data": data}
+        return f"{str_dict}"
 
     @overrides(BaseMessageSegment)
     def __add__(self, other) -> "Message":
@@ -68,24 +67,25 @@ class MessageSegment(BaseMessageSegment["Message"]):
         return MessageSegment("text", ms_dict)
 
     @staticmethod
-    def photo(photo: Union[str, bytes, BytesIO, Path], caption: str = None, obj: SendPhoto = None, **kwargs) -> "MessageSegment":
+    def photo(photo: Union[str, bytes, BytesIO, Path], caption: str = None, obj = None, **kwargs) -> "MessageSegment":
         if obj:
             return MessageSegment("photo", obj.dict())
         ms_dict  = {}
+        ms_photo = None
         if isinstance(photo, BytesIO):
-            photo = photo.read()
+            ms_photo = photo
         if isinstance(photo, bytes):
-            photo = f"base64://{b64encode(photo).decode()}"
+            ms_photo = photo
         elif isinstance(photo, Path):
-            photo = f"file:///{photo.resolve()}"
-        ms_dict["photo"] = photo
+            ms_photo = f"file:///{photo.resolve()}"
+        ms_dict["photo"] = ms_photo
         ms_dict.update(kwargs)
         if caption:
             ms_dict["caption"] = caption
         return MessageSegment("photo", ms_dict)
 
     @staticmethod
-    def audio(audio: str, caption: str = None, obj: SendAudio = None, **kwargs) -> "MessageSegment":
+    def audio(audio: str, caption: str = None, obj = None, **kwargs) -> "MessageSegment":
         if obj:
             return MessageSegment("audio", obj.dict())
         ms_dict  = {}
@@ -152,10 +152,12 @@ class MessageSegment(BaseMessageSegment["Message"]):
               proxy: bool = True,
               timeout: Optional[int] = None) -> "MessageSegment":
         return MessageSegment.photo(file)
+        
     #cqhttp兼容方法
     @staticmethod
     def at(user_id: Union[int, str]) -> "MessageSegment":
         return MessageSegment("at", {"id": str(user_id)})
+
     #cqhttp兼容方法
     @staticmethod
     def reply(id_: int) -> "MessageSegment":

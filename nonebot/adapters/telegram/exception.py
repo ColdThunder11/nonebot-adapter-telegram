@@ -16,6 +16,23 @@ class TelegramAdapterException(AdapterException):
     def __init__(self) -> None:
         super().__init__("Telegram")
 
+class TelegramAdapterConfigException(TelegramAdapterException):
+    """
+    :说明:
+
+      Telegram Adapter 错误基类
+    """
+
+    def __init__(self, msg: Optional[str] = None):
+        super().__init__()
+        self.msg = msg
+
+    def __repr__(self):
+        return f"<ConfigError message={self.msg}>"
+
+    def __str__(self):
+        return self.__repr__()
+
 
 class ActionFailed(BaseActionFailed, TelegramAdapterException):
     """
@@ -47,6 +64,9 @@ class ApiNotAvailable(BaseApiNotAvailable, TelegramAdapterException):
     pass
 
 class MessageNotAcceptable(BaseActionFailed, TelegramAdapterException):
+  pass
+
+class MessageNotSupport(BaseActionFailed, TelegramAdapterException):
   pass
 
 class NetworkError(BaseNetworkError, TelegramAdapterException):
