@@ -274,6 +274,8 @@ class Adapter(BaseAdapter):
             username = (await self._call_api(None, "getMe"))["username"]
             self.bot_name = username
             bot = Bot(self, self.bot_name)
+            log("INFO", "Reset Update...")
+            await self._call_api(None, "getUpdates", offset=-1, timeout=self.telegram_config.telegram_long_polling_timeout)
             offset: int = 0
             log("INFO", "Start polling")
             while True:
@@ -282,7 +284,7 @@ class Adapter(BaseAdapter):
                     for message in messages:
                         if offset < message["update_id"] + 1:
                             offset = message["update_id"] + 1
-                            print(f"offset update to {offset}")
+                            #print(f"offset update to {offset}")
                         event = self.json_to_event(message)
                         try:
                             loop = asyncio.get_event_loop() 
