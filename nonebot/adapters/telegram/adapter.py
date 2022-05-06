@@ -109,10 +109,12 @@ class Adapter(BaseAdapter):
             api_timeout=self.config.api_timeout
         log("DEBUG", f"Calling API <y>{api}</y>")
         # print(data)
-        headers = {}
+        headers = {"Content-Type": "application/json"}
         if not data:
             data = {}
             #raise ValueError("data not found")
+        if data.get("data") != None and len(data) == 1:
+            data = data.get("data")
         try:
             async with httpx.AsyncClient(headers=headers,proxies=self.telegram_config.telegram_bot_api_proxy) as client:
                 response = await client.post(f"{self.telegram_config.telegram_bot_api_server_addr}/bot{self.telegram_config.bot_token}/{api}",
