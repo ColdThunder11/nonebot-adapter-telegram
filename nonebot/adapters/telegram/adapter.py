@@ -123,7 +123,7 @@ class Adapter(BaseAdapter):
                 if isinstance(result, dict):
                     if result.get("ok") != True:
                         #print(result)
-                        raise ActionFailed()
+                        raise ActionFailed(result.get("error_code"),result.get("description"))
                     # print(result["result"])
                     return result["result"]
             raise NetworkError(f"HTTP request received unexpected "
