@@ -22,7 +22,19 @@ from .utils import log
 from .config import Config as TelegramConfig
 from .message import Message, MessageSegment
 from .exception import NetworkError, ApiNotAvailable, ActionFailed, MessageNotSupport
-from .event import CallbackQueryEvent, Event, GroupMessageEvent, MessageEvent, NewChatMembersEvent, PrivateMessageEvent, LeafChatMemberEvent, NewChatTitleEvent, DeleteChatPhotoEvent, VoiceChatEndedEvent, VoiceChatStartedEvent
+from .event import (
+    CallbackQueryEvent,
+    Event,
+    GroupMessageEvent,
+    MessageEvent,
+    NewChatMembersEvent,
+    PrivateMessageEvent,
+    LeafChatMemberEvent,
+    NewChatTitleEvent,
+    DeleteChatPhotoEvent,
+    VideoChatStartedEvent,
+    VideoChatEndedEvent,
+)
 
 from .models import *
 

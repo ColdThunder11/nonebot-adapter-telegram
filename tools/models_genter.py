@@ -133,22 +133,20 @@ f.close()
 #Types Genter
 type_pos_list : List[int] = []
 type_pos_list.append(7)
-for i in range(13,79):
+for i in range(13,86):
     type_pos_list.append(i)
-for i in range(146,150):
+for i in range(157,160):
     type_pos_list.append(i)
-type_pos_list.append(157)
-for i in range(159,187):
+type_pos_list.append(168)
+for i in range(170,198):
     type_pos_list.append(i)
-for i in range(190,198):
+for i in range(204,216):
     type_pos_list.append(i)
-for i in range(198,202):
+for i in range(217,226):
     type_pos_list.append(i)
-for i in range(203,213):
+for i in range(228,230):
     type_pos_list.append(i)
-for i in range(214,216):
-    type_pos_list.append(i)
-type_pos_list.append(218)
+type_pos_list.append(232)
 types_text = '''
 from typing import Dict, List, Optional, Text, Union
 from typing_extensions import Literal
@@ -160,6 +158,8 @@ from enum import Enum
 for i in type_pos_list:
     result = html.xpath(f'//*[@id="dev_page_content"]/h4[{i}]')[0]
     type_str = method_name_text_builder(str(etree.tostring(result), encoding = "utf8"))
+    if type_str.strip()[0].islower():
+        continue
     class_define = f"\nclass {type_str}(BaseModel):"
     #print(etree.tostring(result.getnext()))
     annotation_text = method_name_annotation_builder(str(etree.tostring(result.getnext()), encoding = "utf8"))
@@ -172,6 +172,12 @@ for i in type_pos_list:
     #print(type_str)
     #print(annotation_text)
     #print(type_info)
+types_text += '''
+Update.update_forward_refs()
+Chat.update_forward_refs()
+MessageBody.update_forward_refs()
+InlineKeyboardButton.update_forward_refs()
+'''.strip()
 print(types_text)
 with open("tg_types.py","w",encoding="utf-8") as wf:
     wf.write(types_text)

@@ -89,3 +89,14 @@ class NetworkError(BaseNetworkError, TelegramAdapterException):
 
     def __str__(self):
         return self.__repr__()
+
+class MenuHandleFailed(TelegramAdapterException):
+    """
+    :说明:
+
+      Menu Helper Callback 错误类
+    """
+    def __init__(self, msg: Optional[str] = None, innerError: Exception = None):
+      super().__init__()
+      self.msg = msg
+      self.innerError = innerError

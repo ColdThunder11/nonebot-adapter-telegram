@@ -341,8 +341,8 @@ class DeleteChatPhotoEvent(MessageEvent):
         return f"{self.message.chat.id}"
 
 
-class VoiceChatStartedEvent(MessageEvent):
-    """语言聊天开始事件"""
+class VideoChatStartedEvent(MessageEvent):
+    """视频聊天开始事件"""
     @overrides(Event)
     def get_type(self) -> Literal["message", "notice", "request", "meta_event"]:
         return "notice"
@@ -359,12 +359,12 @@ class VoiceChatStartedEvent(MessageEvent):
     def get_session_id(self) -> str:
         return f"{self.message.chat.id}"
 
-    def get_voice_chat_started(self) -> VoiceChatStarted:
-        return self.message.voice_chat_started
+    def get_voice_chat_started(self) -> VideoChatStarted:
+        return self.message.video_chat_started
 
 
-class VoiceChatEndedEvent(MessageEvent):
-    """语言聊天结束事件"""
+class VideoChatEndedEvent(MessageEvent):
+    """视频聊天结束事件"""
     @overrides(Event)
     def get_type(self) -> Literal["message", "notice", "request", "meta_event"]:
         return "notice"
@@ -381,5 +381,5 @@ class VoiceChatEndedEvent(MessageEvent):
     def get_session_id(self) -> str:
         return f"{self.message.chat.id}"
 
-    def get_voice_chat_ended(self) -> VoiceChatEnded:
-        return self.message.voice_chat_ended
+    def get_voice_chat_ended(self) -> VideoChatEnded:
+        return self.message.video_chat_ended

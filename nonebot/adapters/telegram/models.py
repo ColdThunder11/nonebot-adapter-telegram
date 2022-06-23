@@ -1,4 +1,3 @@
-
 from typing import Dict, List, Optional, Text, Union
 from typing_extensions import Literal
 
@@ -33,10 +32,10 @@ class Update(BaseModel):
     This object represents an incoming update.At most one of the optional parameters can be present in any given update.
 
     Arguments:
-        update_id: The update's unique identifier. Update identifiers start from a certain positive number and increase sequentially. This ID becomes especially handy if you're using Webhooks, since it allows you to ignore repeated updates or to restore the correct update sequence, should they get out of order. If there are no new updates for at least a week, then identifier of the next update will be chosen randomly instead of sequentially.
-        message: Optional. New incoming message of any kind &#8212; text, photo, sticker, etc.
+        update_id: The update's unique identifier. Update identifiers start from a certain positive number and increase sequentially. This ID becomes especially handy if you're using webhooks, since it allows you to ignore repeated updates or to restore the correct update sequence, should they get out of order. If there are no new updates for at least a week, then identifier of the next update will be chosen randomly instead of sequentially.
+        message: Optional. New incoming message of any kind - text, photo, sticker, etc.
         edited_message: Optional. New version of a message that is known to the bot and was edited
-        channel_post: Optional. New incoming channel post of any kind &#8212; text, photo, sticker, etc.
+        channel_post: Optional. New incoming channel post of any kind - text, photo, sticker, etc.
         edited_channel_post: Optional. New version of a channel post that is known to the bot and was edited
         inline_query: Optional. New incoming inline query
         chosen_inline_result: Optional. The result of an inline query that was chosen by a user and sent to their chat partner. Please see our documentation on the feedback collecting for details on how to enable these updates for your bot.
@@ -77,6 +76,8 @@ class User(BaseModel):
         last_name: Optional. User's or bot's last name
         username: Optional. User's or bot's username
         language_code: Optional. IETF language tag of the user's language
+        is_premium: Optional. True, if this user is a Telegram Premium user
+        added_to_attachment_menu: Optional. True, if this user added the bot to the attachment menu
         can_join_groups: Optional. True, if the bot can be invited to groups. Returned only in getMe.
         can_read_all_group_messages: Optional. True, if privacy mode is disabled for the bot. Returned only in getMe.
         supports_inline_queries: Optional. True, if the bot supports inline queries. Returned only in getMe.
@@ -87,6 +88,8 @@ class User(BaseModel):
     last_name: Optional["str"]
     username: Optional["str"]
     language_code: Optional["str"]
+    is_premium: Optional["bool"]
+    added_to_attachment_menu: Optional["bool"]
     can_join_groups: Optional["bool"]
     can_read_all_group_messages: Optional["bool"]
     supports_inline_queries: Optional["bool"]
@@ -106,6 +109,8 @@ class Chat(BaseModel):
         photo: Optional. Chat photo. Returned only in getChat.
         bio: Optional. Bio of the other party in a private chat. Returned only in getChat.
         has_private_forwards: Optional. True, if privacy settings of the other party in the private chat allows to use tg://user?id=&lt;user_id&gt; links only in chats with the user. Returned only in getChat.
+        join_to_send_messages: Optional. True, if users need to join the supergroup before they can send messages. Returned only in getChat.
+        join_by_request: Optional. True, if all users directly joining the supergroup need to be approved by supergroup administrators. Returned only in getChat.
         description: Optional. Description, for groups, supergroups and channel chats. Returned only in getChat.
         invite_link: Optional. Primary invite link, for groups, supergroups and channel chats. Returned only in getChat.
         pinned_message: Optional. The most recent pinned message (by sending date). Returned only in getChat.
@@ -127,6 +132,8 @@ class Chat(BaseModel):
     photo: Optional["ChatPhoto"]
     bio: Optional["str"]
     has_private_forwards: Optional["bool"]
+    join_to_send_messages: Optional["bool"]
+    join_by_request: Optional["bool"]
     description: Optional["str"]
     invite_link: Optional["str"]
     pinned_message: Optional["MessageBody"]
@@ -147,12 +154,12 @@ class MessageBody(BaseModel):
     Arguments:
         message_id: Unique message identifier inside this chat
         from_: Optional. Sender of the message; empty for messages sent to channels. For backward compatibility, the field contains a fake sender user in non-channel chats, if the message was sent on behalf of a chat.
-        sender_chat: Optional. Sender of the message, sent on behalf of a chat. For example, the channel itself for channel posts, the supergroup itself for messages from anonymous group administrators, the linked channel for messages automatically forwarded to the discussion group.  For backward compatibility, the field from contains a fake sender user in non-channel chats, if the message was sent on behalf of a chat.
+        sender_chat: Optional. Sender of the message, sent on behalf of a chat. For example, the channel itself for channel posts, the supergroup itself for messages from anonymous group administrators, the linked channel for messages automatically forwarded to the discussion group. For backward compatibility, the field from contains a fake sender user in non-channel chats, if the message was sent on behalf of a chat.
         date: Date the message was sent in Unix time
         chat: Conversation the message belongs to
-        forwardfrom_: Optional. For forwarded messages, sender of the original message
-        forwardfrom_chat: Optional. For messages forwarded from channels or from anonymous administrators, information about the original sender chat
-        forwardfrom_message_id: Optional. For messages forwarded from channels, identifier of the original message in the channel
+        forward_from: Optional. For forwarded messages, sender of the original message
+        forward_from_chat: Optional. For messages forwarded from channels or from anonymous administrators, information about the original sender chat
+        forward_from_message_id: Optional. For messages forwarded from channels, identifier of the original message in the channel
         forward_signature: Optional. For forwarded messages that were originally sent in channels or by an anonymous chat administrator, signature of the message sender if present
         forward_sender_name: Optional. Sender's name for messages forwarded from users who disallow adding a link to their account in forwarded messages
         forward_date: Optional. For forwarded messages, date the original message was sent in Unix time
@@ -163,7 +170,7 @@ class MessageBody(BaseModel):
         has_protected_content: Optional. True, if the message can't be forwarded
         media_group_id: Optional. The unique identifier of a media message group this message belongs to
         author_signature: Optional. Signature of the post author for messages in channels, or the custom title of an anonymous group administrator
-        text: Optional. For text messages, the actual UTF-8 text of the message, 0-4096 characters
+        text: Optional. For text messages, the actual UTF-8 text of the message
         entities: Optional. For text messages, special entities like usernames, URLs, bot commands, etc. that appear in the text
         animation: Optional. Message is an animation, information about the animation. For backward compatibility, when this field is set, the document field will also be set
         audio: Optional. Message is an audio file, information about the file
@@ -173,7 +180,7 @@ class MessageBody(BaseModel):
         video: Optional. Message is a video, information about the video
         video_note: Optional. Message is a video note, information about the video message
         voice: Optional. Message is a voice message, information about the file
-        caption: Optional. Caption for the animation, audio, document, photo, video or voice, 0-1024 characters
+        caption: Optional. Caption for the animation, audio, document, photo, video or voice
         caption_entities: Optional. For messages with a caption, special entities like usernames, URLs, bot commands, etc. that appear in the caption
         contact: Optional. Message is a shared contact, information about the contact
         dice: Optional. Message is a dice with random value
@@ -191,17 +198,18 @@ class MessageBody(BaseModel):
         channel_chat_created: Optional. Service message: the channel has been created. This field can't be received in a message coming through updates, because bot can't be a member of a channel when it is created. It can only be found in reply_to_message if someone replies to a very first message in a channel.
         message_auto_delete_timer_changed: Optional. Service message: auto-delete timer settings changed in the chat
         migrate_to_chat_id: Optional. The group has been migrated to a supergroup with the specified identifier. This number may have more than 32 significant bits and some programming languages may have difficulty/silent defects in interpreting it. But it has at most 52 significant bits, so a signed 64-bit integer or double-precision float type are safe for storing this identifier.
-        migratefrom_chat_id: Optional. The supergroup has been migrated from a group with the specified identifier. This number may have more than 32 significant bits and some programming languages may have difficulty/silent defects in interpreting it. But it has at most 52 significant bits, so a signed 64-bit integer or double-precision float type are safe for storing this identifier.
+        migrate_from_chat_id: Optional. The supergroup has been migrated from a group with the specified identifier. This number may have more than 32 significant bits and some programming languages may have difficulty/silent defects in interpreting it. But it has at most 52 significant bits, so a signed 64-bit integer or double-precision float type are safe for storing this identifier.
         pinned_message: Optional. Specified message was pinned. Note that the Message object in this field will not contain further reply_to_message fields even if it is itself a reply.
         invoice: Optional. Message is an invoice for a payment, information about the invoice. More about payments &#187;
         successful_payment: Optional. Message is a service message about a successful payment, information about the payment. More about payments &#187;
         connected_website: Optional. The domain name of the website on which the user has logged in. More about Telegram Login &#187;
         passport_data: Optional. Telegram Passport data
         proximity_alert_triggered: Optional. Service message. A user in the chat triggered another user's proximity alert while sharing Live Location.
-        voice_chat_scheduled: Optional. Service message: voice chat scheduled
-        voice_chat_started: Optional. Service message: voice chat started
-        voice_chat_ended: Optional. Service message: voice chat ended
-        voice_chat_participants_invited: Optional. Service message: new participants invited to a voice chat
+        video_chat_scheduled: Optional. Service message: video chat scheduled
+        video_chat_started: Optional. Service message: video chat started
+        video_chat_ended: Optional. Service message: video chat ended
+        video_chat_participants_invited: Optional. Service message: new participants invited to a video chat
+        web_app_data: Optional. Service message: data sent by a Web App
         reply_markup: Optional. Inline keyboard attached to the message. login_url buttons are represented as ordinary url buttons.
     '''
 
@@ -216,9 +224,9 @@ class MessageBody(BaseModel):
     sender_chat: Optional["Chat"]
     date: "int"
     chat: "Chat"
-    forwardfrom_: Optional["User"]
-    forwardfrom_chat: Optional["Chat"]
-    forwardfrom_message_id: Optional["int"]
+    forward_from: Optional["User"]
+    forward_from_chat: Optional["Chat"]
+    forward_from_message_id: Optional["int"]
     forward_signature: Optional["str"]
     forward_sender_name: Optional["str"]
     forward_date: Optional["int"]
@@ -257,17 +265,18 @@ class MessageBody(BaseModel):
     channel_chat_created: Optional["bool"]
     message_auto_delete_timer_changed: Optional["MessageAutoDeleteTimerChanged"]
     migrate_to_chat_id: Optional["int"]
-    migratefrom_chat_id: Optional["int"]
+    migrate_from_chat_id: Optional["int"]
     pinned_message: Optional["MessageBody"]
     invoice: Optional["Invoice"]
     successful_payment: Optional["SuccessfulPayment"]
     connected_website: Optional["str"]
     passport_data: Optional["PassportData"]
     proximity_alert_triggered: Optional["ProximityAlertTriggered"]
-    voice_chat_scheduled: Optional["VoiceChatScheduled"]
-    voice_chat_started: Optional["VoiceChatStarted"]
-    voice_chat_ended: Optional["VoiceChatEnded"]
-    voice_chat_participants_invited: Optional["VoiceChatParticipantsInvited"]
+    video_chat_scheduled: Optional["VideoChatScheduled"]
+    video_chat_started: Optional["VideoChatStarted"]
+    video_chat_ended: Optional["VideoChatEnded"]
+    video_chat_participants_invited: Optional["VideoChatParticipantsInvited"]
+    web_app_data: Optional["WebAppData"]
     reply_markup: Optional["InlineKeyboardMarkup"]
 
 
@@ -289,7 +298,7 @@ class MessageEntity(BaseModel):
         type: Type of the entity. Currently, can be &#8220;mention&#8221; (@username), &#8220;hashtag&#8221; (#hashtag), &#8220;cashtag&#8221; ($USD), &#8220;bot_command&#8221; (/start@jobs_bot), &#8220;url&#8221; (https://telegram.org), &#8220;email&#8221; (do-not-reply@telegram.org), &#8220;phone_number&#8221; (+1-212-555-0123), &#8220;bold&#8221; (bold text), &#8220;italic&#8221; (italic text), &#8220;underline&#8221; (underlined text), &#8220;strikethrough&#8221; (strikethrough text), &#8220;spoiler&#8221; (spoiler message), &#8220;code&#8221; (monowidth string), &#8220;pre&#8221; (monowidth block), &#8220;text_link&#8221; (for clickable text URLs), &#8220;text_mention&#8221; (for users without usernames)
         offset: Offset in UTF-16 code units to the start of the entity
         length: Length of the entity in UTF-16 code units
-        url: Optional. For &#8220;text_link&#8221; only, url that will be opened after user taps on the text
+        url: Optional. For &#8220;text_link&#8221; only, URL that will be opened after user taps on the text
         user: Optional. For &#8220;text_mention&#8221; only, the mentioned user
         language: Optional. For &#8220;pre&#8221; only, the programming language of the entity text
     '''
@@ -332,7 +341,7 @@ class Animation(BaseModel):
         thumb: Optional. Animation thumbnail as defined by sender
         file_name: Optional. Original animation filename as defined by sender
         mime_type: Optional. MIME type of the file as defined by sender
-        file_size: Optional. File size in bytes
+        file_size: Optional. File size in bytes. It can be bigger than 2^31 and some programming languages may have difficulty/silent defects in interpreting it. But it has at most 52 significant bits, so a signed 64-bit integer or double-precision float type are safe for storing this value.
     '''
     file_id: "str"
     file_unique_id: "str"
@@ -357,7 +366,7 @@ class Audio(BaseModel):
         title: Optional. Title of the audio as defined by sender or by audio tags
         file_name: Optional. Original filename as defined by sender
         mime_type: Optional. MIME type of the file as defined by sender
-        file_size: Optional. File size in bytes
+        file_size: Optional. File size in bytes. It can be bigger than 2^31 and some programming languages may have difficulty/silent defects in interpreting it. But it has at most 52 significant bits, so a signed 64-bit integer or double-precision float type are safe for storing this value.
         thumb: Optional. Thumbnail of the album cover to which the music file belongs
     '''
     file_id: "str"
@@ -381,7 +390,7 @@ class Document(BaseModel):
         thumb: Optional. Document thumbnail as defined by sender
         file_name: Optional. Original filename as defined by sender
         mime_type: Optional. MIME type of the file as defined by sender
-        file_size: Optional. File size in bytes
+        file_size: Optional. File size in bytes. It can be bigger than 2^31 and some programming languages may have difficulty/silent defects in interpreting it. But it has at most 52 significant bits, so a signed 64-bit integer or double-precision float type are safe for storing this value.
     '''
     file_id: "str"
     file_unique_id: "str"
@@ -403,8 +412,8 @@ class Video(BaseModel):
         duration: Duration of the video in seconds as defined by sender
         thumb: Optional. Video thumbnail
         file_name: Optional. Original filename as defined by sender
-        mime_type: Optional. Mime type of a file as defined by sender
-        file_size: Optional. File size in bytes
+        mime_type: Optional. MIME type of the file as defined by sender
+        file_size: Optional. File size in bytes. It can be bigger than 2^31 and some programming languages may have difficulty/silent defects in interpreting it. But it has at most 52 significant bits, so a signed 64-bit integer or double-precision float type are safe for storing this value.
     '''
     file_id: "str"
     file_unique_id: "str"
@@ -446,7 +455,7 @@ class Voice(BaseModel):
         file_unique_id: Unique identifier for this file, which is supposed to be the same over time and for different bots. Can't be used to download or reuse the file.
         duration: Duration of the audio in seconds as defined by sender
         mime_type: Optional. MIME type of the file as defined by sender
-        file_size: Optional. File size in bytes
+        file_size: Optional. File size in bytes. It can be bigger than 2^31 and some programming languages may have difficulty/silent defects in interpreting it. But it has at most 52 significant bits, so a signed 64-bit integer or double-precision float type are safe for storing this value.
     '''
     file_id: "str"
     file_unique_id: "str"
@@ -555,7 +564,7 @@ class Location(BaseModel):
         horizontal_accuracy: Optional. The radius of uncertainty for the location, measured in meters; 0-1500
         live_period: Optional. Time relative to the message sending date, during which the location can be updated; in seconds. For active live locations only.
         heading: Optional. The direction in which user is moving, in degrees; 1-360. For active live locations only.
-        proximity_alert_radius: Optional. Maximum distance for proximity alerts about approaching another chat member, in meters. For sent live locations only.
+        proximity_alert_radius: Optional. The maximum distance for proximity alerts about approaching another chat member, in meters. For sent live locations only.
     '''
     longitude: "float"
     latitude: "float"
@@ -587,6 +596,18 @@ class Venue(BaseModel):
     google_place_type: Optional["str"]
 
 
+class WebAppData(BaseModel):
+    '''
+    Describes data sent from a Web App to the bot.
+
+    Arguments:
+        data: The data. Be aware that a bad client can send arbitrary data in this field.
+        button_text: Text of the web_app keyboard button from which the Web App was opened. Be aware that a bad client can send arbitrary data in this field.
+    '''
+    data: "str"
+    button_text: "str"
+
+
 class ProximityAlertTriggered(BaseModel):
     '''
     This object represents the content of a service message, sent whenever a user in the chat triggers a proximity alert set by another user.
@@ -611,42 +632,42 @@ class MessageAutoDeleteTimerChanged(BaseModel):
     message_auto_delete_time: "int"
 
 
-class VoiceChatScheduled(BaseModel):
+class VideoChatScheduled(BaseModel):
     '''
-    This object represents a service message about a voice chat scheduled in the chat.
+    This object represents a service message about a video chat scheduled in the chat.
 
     Arguments:
-        start_date: Point in time (Unix timestamp) when the voice chat is supposed to be started by a chat administrator
+        start_date: Point in time (Unix timestamp) when the video chat is supposed to be started by a chat administrator
     '''
     start_date: "int"
 
 
-class VoiceChatStarted(BaseModel):
+class VideoChatStarted(BaseModel):
     '''
-    This object represents a service message about a voice chat started in the chat. Currently holds no information.
+    This object represents a service message about a video chat started in the chat. Currently holds no information.
 
     Arguments:
     '''
 pass
 
-class VoiceChatEnded(BaseModel):
+class VideoChatEnded(BaseModel):
     '''
-    This object represents a service message about a voice chat ended in the chat.
+    This object represents a service message about a video chat ended in the chat.
 
     Arguments:
-        duration: Voice chat duration in seconds
+        duration: Video chat duration in seconds
     '''
     duration: "int"
 
 
-class VoiceChatParticipantsInvited(BaseModel):
+class VideoChatParticipantsInvited(BaseModel):
     '''
-    This object represents a service message about new members invited to a voice chat.
+    This object represents a service message about new members invited to a video chat.
 
     Arguments:
-        users: Optional. New members that were invited to the voice chat
+        users: New members that were invited to the video chat
     '''
-    users: Optional[List["User"]]
+    users: List["User"]
 
 
 class UserProfilePhotos(BaseModel):
@@ -669,6 +690,16 @@ class File(BaseModel):
     '''
 pass
 
+class WebAppInfo(BaseModel):
+    '''
+    Describes a Web App.
+
+    Arguments:
+        url: An HTTPS URL of a Web App to be opened with additional data as specified in Initializing Web Apps
+    '''
+    url: "str"
+
+
 class ReplyKeyboardMarkup(BaseModel):
     '''
     This object represents a custom keyboard with reply options (see Introduction to bots for details and examples).
@@ -676,7 +707,7 @@ class ReplyKeyboardMarkup(BaseModel):
     Arguments:
         keyboard: Array of button rows, each represented by an Array of KeyboardButton objects
         resize_keyboard: Optional. Requests clients to resize the keyboard vertically for optimal fit (e.g., make the keyboard smaller if there are just two rows of buttons). Defaults to false, in which case the custom keyboard is always of the same height as the app's standard keyboard.
-        one_time_keyboard: Optional. Requests clients to hide the keyboard as soon as it's been used. The keyboard will still be available, but clients will automatically display the usual letter-keyboard in the chat &#8211; the user can press a special button in the input field to see the custom keyboard again. Defaults to false.
+        one_time_keyboard: Optional. Requests clients to hide the keyboard as soon as it's been used. The keyboard will still be available, but clients will automatically display the usual letter-keyboard in the chat - the user can press a special button in the input field to see the custom keyboard again. Defaults to false.
         input_field_placeholder: Optional. The placeholder to be shown in the input field when the keyboard is active; 1-64 characters
         selective: Optional. Use this parameter if you want to show the keyboard to specific users only. Targets: 1) users that are @mentioned in the text of the Message object; 2) if the bot's message is a reply (has reply_to_message_id), sender of the original message.Example: A user requests to change the bot's language, bot replies to the request with a keyboard to select the new language. Other users in the group don't see the keyboard.
     '''
@@ -689,18 +720,20 @@ class ReplyKeyboardMarkup(BaseModel):
 
 class KeyboardButton(BaseModel):
     '''
-    This object represents one button of the reply keyboard. For simple text buttons String can be used instead of this object to specify text of the button. Optional fields request_contact, request_location, and request_poll are mutually exclusive.
+    This object represents one button of the reply keyboard. For simple text buttons String can be used instead of this object to specify text of the button. Optional fields web_app, request_contact, request_location, and request_poll are mutually exclusive.
 
     Arguments:
         text: Text of the button. If none of the optional fields are used, it will be sent as a message when the button is pressed
-        request_contact: Optional. If True, the user's phone number will be sent as a contact when the button is pressed. Available in private chats only
-        request_location: Optional. If True, the user's current location will be sent when the button is pressed. Available in private chats only
-        request_poll: Optional. If specified, the user will be asked to create a poll and send it to the bot when the button is pressed. Available in private chats only
+        request_contact: Optional. If True, the user's phone number will be sent as a contact when the button is pressed. Available in private chats only.
+        request_location: Optional. If True, the user's current location will be sent when the button is pressed. Available in private chats only.
+        request_poll: Optional. If specified, the user will be asked to create a poll and send it to the bot when the button is pressed. Available in private chats only.
+        web_app: Optional. If specified, the described Web App will be launched when the button is pressed. The Web App will be able to send a &#8220;web_app_data&#8221; service message. Available in private chats only.
     '''
     text: "str"
     request_contact: Optional["bool"]
     request_location: Optional["bool"]
     request_poll: Optional["KeyboardButtonPollType"]
+    web_app: Optional["WebAppInfo"]
 
 
 class KeyboardButtonPollType(BaseModel):
@@ -741,18 +774,20 @@ class InlineKeyboardButton(BaseModel):
 
     Arguments:
         text: Label text on the button
-        url: Optional. HTTP or tg:// url to be opened when the button is pressed. Links tg://user?id=&lt;user_id&gt; can be used to mention a user by their ID without using a username, if this is allowed by their privacy settings.
-        login_url: Optional. An HTTP URL used to automatically authorize the user. Can be used as a replacement for the Telegram Login Widget.
+        url: Optional. HTTP or tg:// URL to be opened when the button is pressed. Links tg://user?id=&lt;user_id&gt; can be used to mention a user by their ID without using a username, if this is allowed by their privacy settings.
         callback_data: Optional. Data to be sent in a callback query to the bot when button is pressed, 1-64 bytes
-        switch_inline_query: Optional. If set, pressing the button will prompt the user to select one of their chats, open that chat and insert the bot's username and the specified inline query in the input field. Can be empty, in which case just the bot's username will be inserted.Note: This offers an easy way for users to start using your bot in inline mode when they are currently in a private chat with it. Especially useful when combined with switch_pm&#8230; actions &#8211; in this case the user will be automatically returned to the chat they switched from, skipping the chat selection screen.
-        switch_inline_query_current_chat: Optional. If set, pressing the button will insert the bot's username and the specified inline query in the current chat's input field. Can be empty, in which case only the bot's username will be inserted.This offers a quick way for the user to open your bot in inline mode in the same chat &#8211; good for selecting something from multiple options.
+        web_app: Optional. Description of the Web App that will be launched when the user presses the button. The Web App will be able to send an arbitrary message on behalf of the user using the method answerWebAppQuery. Available only in private chats between a user and the bot.
+        login_url: Optional. An HTTPS URL used to automatically authorize the user. Can be used as a replacement for the Telegram Login Widget.
+        switch_inline_query: Optional. If set, pressing the button will prompt the user to select one of their chats, open that chat and insert the bot's username and the specified inline query in the input field. May be empty, in which case just the bot's username will be inserted.Note: This offers an easy way for users to start using your bot in inline mode when they are currently in a private chat with it. Especially useful when combined with switch_pm&#8230; actions - in this case the user will be automatically returned to the chat they switched from, skipping the chat selection screen.
+        switch_inline_query_current_chat: Optional. If set, pressing the button will insert the bot's username and the specified inline query in the current chat's input field. May be empty, in which case only the bot's username will be inserted.This offers a quick way for the user to open your bot in inline mode in the same chat - good for selecting something from multiple options.
         callback_game: Optional. Description of the game that will be launched when the user presses the button.NOTE: This type of button must always be the first button in the first row.
         pay: Optional. Specify True, to send a Pay button.NOTE: This type of button must always be the first button in the first row and can only be used in invoice messages.
     '''
     text: "str"
     url: Optional["str"]
-    login_url: Optional["LoginUrl"]
     callback_data: Optional["str"]
+    web_app: Optional["WebAppInfo"]
+    login_url: Optional["LoginUrl"]
     switch_inline_query: Optional["str"]
     switch_inline_query_current_chat: Optional["str"]
     callback_game: Optional["CallbackGame"]
@@ -777,7 +812,7 @@ class CallbackQuery(BaseModel):
         message: Optional. Message with the callback button that originated the query. Note that message content and message date will not be available if the message is too old
         inline_message_id: Optional. Identifier of the message sent via the bot in inline mode, that originated the query.
         chat_instance: Global identifier, uniquely corresponding to the chat to which the message with the callback button was sent. Useful for high scores in games.
-        data: Optional. Data associated with the callback button. Be aware that a bad client can send arbitrary data in this field.
+        data: Optional. Data associated with the callback button. Be aware that the message originated the query can contain no callback buttons with this data.
         game_short_name: Optional. Short name of a Game to be returned, serves as the unique identifier for the game
     '''
 
@@ -838,7 +873,7 @@ class ChatInviteLink(BaseModel):
         is_revoked: True, if the link is revoked
         name: Optional. Invite link name
         expire_date: Optional. Point in time (Unix timestamp) when the link will expire or has been expired
-        member_limit: Optional. Maximum number of users that can be members of the chat simultaneously after joining the chat via this invite link; 1-99999
+        member_limit: Optional. The maximum number of users that can be members of the chat simultaneously after joining the chat via this invite link; 1-99999
         pending_join_request_count: Optional. Number of pending join requests created using this link
     '''
     invite_link: "str"
@@ -850,6 +885,36 @@ class ChatInviteLink(BaseModel):
     expire_date: Optional["int"]
     member_limit: Optional["int"]
     pending_join_request_count: Optional["int"]
+
+
+class ChatAdministratorRights(BaseModel):
+    '''
+    Represents the rights of an administrator in a chat.
+
+    Arguments:
+        is_anonymous: True, if the user's presence in the chat is hidden
+        can_manage_chat: True, if the administrator can access the chat event log, chat statistics, message statistics in channels, see channel members, see anonymous administrators in supergroups and ignore slow mode. Implied by any other administrator privilege
+        can_delete_messages: True, if the administrator can delete messages of other users
+        can_manage_video_chats: True, if the administrator can manage video chats
+        can_restrict_members: True, if the administrator can restrict, ban or unban chat members
+        can_promote_members: True, if the administrator can add new administrators with a subset of their own privileges or demote administrators that he has promoted, directly or indirectly (promoted by administrators that were appointed by the user)
+        can_change_info: True, if the user is allowed to change the chat title, photo and other settings
+        can_invite_users: True, if the user is allowed to invite new users to the chat
+        can_post_messages: Optional. True, if the administrator can post in the channel; channels only
+        can_edit_messages: Optional. True, if the administrator can edit messages of other users and can pin messages; channels only
+        can_pin_messages: Optional. True, if the user is allowed to pin messages; groups and supergroups only
+    '''
+    is_anonymous: "bool"
+    can_manage_chat: "bool"
+    can_delete_messages: "bool"
+    can_manage_video_chats: "bool"
+    can_restrict_members: "bool"
+    can_promote_members: "bool"
+    can_change_info: "bool"
+    can_invite_users: "bool"
+    can_post_messages: Optional["bool"]
+    can_edit_messages: Optional["bool"]
+    can_pin_messages: Optional["bool"]
 
 
 class ChatMember(BaseModel):
@@ -887,7 +952,7 @@ class ChatMemberAdministrator(BaseModel):
         is_anonymous: True, if the user's presence in the chat is hidden
         can_manage_chat: True, if the administrator can access the chat event log, chat statistics, message statistics in channels, see channel members, see anonymous administrators in supergroups and ignore slow mode. Implied by any other administrator privilege
         can_delete_messages: True, if the administrator can delete messages of other users
-        can_manage_voice_chats: True, if the administrator can manage voice chats
+        can_manage_video_chats: True, if the administrator can manage video chats
         can_restrict_members: True, if the administrator can restrict, ban or unban chat members
         can_promote_members: True, if the administrator can add new administrators with a subset of their own privileges or demote administrators that he has promoted, directly or indirectly (promoted by administrators that were appointed by the user)
         can_change_info: True, if the user is allowed to change the chat title, photo and other settings
@@ -903,7 +968,7 @@ class ChatMemberAdministrator(BaseModel):
     is_anonymous: "bool"
     can_manage_chat: "bool"
     can_delete_messages: "bool"
-    can_manage_voice_chats: "bool"
+    can_manage_video_chats: "bool"
     can_restrict_members: "bool"
     can_promote_members: "bool"
     can_change_info: "bool"
@@ -1141,7 +1206,7 @@ class BotCommandScopeChat(BaseModel):
         chat_id: Unique identifier for the target chat or username of the target supergroup (in the format @supergroupusername)
     '''
     type: "str"
-    chat_id: Union[int, str]
+    chat_id: "Union[int, str]"
 
 
 class BotCommandScopeChatAdministrators(BaseModel):
@@ -1153,7 +1218,7 @@ class BotCommandScopeChatAdministrators(BaseModel):
         chat_id: Unique identifier for the target chat or username of the target supergroup (in the format @supergroupusername)
     '''
     type: "str"
-    chat_id: Union[int, str]
+    chat_id: "Union[int, str]"
 
 
 class BotCommandScopeChatMember(BaseModel):
@@ -1166,13 +1231,55 @@ class BotCommandScopeChatMember(BaseModel):
         user_id: Unique identifier of the target user
     '''
     type: "str"
-    chat_id: Union[int, str]
+    chat_id: "Union[int, str]"
     user_id: "int"
+
+
+class MenuButton(BaseModel):
+    '''
+    This object describes the bot's menu button in a private chat. It should be one of
+
+    Arguments:
+    '''
+pass
+
+class MenuButtonCommands(BaseModel):
+    '''
+    Represents a menu button, which opens the bot's list of commands.
+
+    Arguments:
+        type: Type of the button, must be commands
+    '''
+    type: "str"
+
+
+class MenuButtonWebApp(BaseModel):
+    '''
+    Represents a menu button, which launches a Web App.
+
+    Arguments:
+        type: Type of the button, must be web_app
+        text: Text on the button
+        web_app: Description of the Web App that will be launched when the user presses the button. The Web App will be able to send an arbitrary message on behalf of the user using the method answerWebAppQuery.
+    '''
+    type: "str"
+    text: "str"
+    web_app: "WebAppInfo"
+
+
+class MenuButtonDefault(BaseModel):
+    '''
+    Describes that no specific value for the menu button was set.
+
+    Arguments:
+        type: Type of the button, must be default
+    '''
+    type: "str"
 
 
 class ResponseParameters(BaseModel):
     '''
-    Contains information about why a request was unsuccessful.
+    Describes why a request was unsuccessful.
 
     Arguments:
         migrate_to_chat_id: Optional. The group has been migrated to a supergroup with the specified identifier. This number may have more than 32 significant bits and some programming languages may have difficulty/silent defects in interpreting it. But it has at most 52 significant bits, so a signed 64-bit integer or double-precision float type are safe for storing this identifier.
@@ -1196,7 +1303,7 @@ class InputMediaPhoto(BaseModel):
 
     Arguments:
         type: Type of the result, must be photo
-        media: File to send. Pass a file_id to send a file that exists on the Telegram servers (recommended), pass an HTTP URL for Telegram to get a file from the Internet, or pass &#8220;attach://&lt;file_attach_name&gt;&#8221; to upload a new one using multipart/form-data under &lt;file_attach_name&gt; name. More info on Sending Files &#187;
+        media: File to send. Pass a file_id to send a file that exists on the Telegram servers (recommended), pass an HTTP URL for Telegram to get a file from the Internet, or pass &#8220;attach://&lt;file_attach_name&gt;&#8221; to upload a new one using multipart/form-data under &lt;file_attach_name&gt; name. More information on Sending Files &#187;
         caption: Optional. Caption of the photo to be sent, 0-1024 characters after entities parsing
         parse_mode: Optional. Mode for parsing entities in the photo caption. See formatting options for more details.
         caption_entities: Optional. List of special entities that appear in the caption, which can be specified instead of parse_mode
@@ -1214,8 +1321,8 @@ class InputMediaVideo(BaseModel):
 
     Arguments:
         type: Type of the result, must be video
-        media: File to send. Pass a file_id to send a file that exists on the Telegram servers (recommended), pass an HTTP URL for Telegram to get a file from the Internet, or pass &#8220;attach://&lt;file_attach_name&gt;&#8221; to upload a new one using multipart/form-data under &lt;file_attach_name&gt; name. More info on Sending Files &#187;
-        thumb: Optional. Thumbnail of the file sent; can be ignored if thumbnail generation for the file is supported server-side. The thumbnail should be in JPEG format and less than 200 kB in size. A thumbnail's width and height should not exceed 320. Ignored if the file is not uploaded using multipart/form-data. Thumbnails can't be reused and can be only uploaded as a new file, so you can pass &#8220;attach://&lt;file_attach_name&gt;&#8221; if the thumbnail was uploaded using multipart/form-data under &lt;file_attach_name&gt;. More info on Sending Files &#187;
+        media: File to send. Pass a file_id to send a file that exists on the Telegram servers (recommended), pass an HTTP URL for Telegram to get a file from the Internet, or pass &#8220;attach://&lt;file_attach_name&gt;&#8221; to upload a new one using multipart/form-data under &lt;file_attach_name&gt; name. More information on Sending Files &#187;
+        thumb: Optional. Thumbnail of the file sent; can be ignored if thumbnail generation for the file is supported server-side. The thumbnail should be in JPEG format and less than 200 kB in size. A thumbnail's width and height should not exceed 320. Ignored if the file is not uploaded using multipart/form-data. Thumbnails can't be reused and can be only uploaded as a new file, so you can pass &#8220;attach://&lt;file_attach_name&gt;&#8221; if the thumbnail was uploaded using multipart/form-data under &lt;file_attach_name&gt;. More information on Sending Files &#187;
         caption: Optional. Caption of the video to be sent, 0-1024 characters after entities parsing
         parse_mode: Optional. Mode for parsing entities in the video caption. See formatting options for more details.
         caption_entities: Optional. List of special entities that appear in the caption, which can be specified instead of parse_mode
@@ -1242,8 +1349,8 @@ class InputMediaAnimation(BaseModel):
 
     Arguments:
         type: Type of the result, must be animation
-        media: File to send. Pass a file_id to send a file that exists on the Telegram servers (recommended), pass an HTTP URL for Telegram to get a file from the Internet, or pass &#8220;attach://&lt;file_attach_name&gt;&#8221; to upload a new one using multipart/form-data under &lt;file_attach_name&gt; name. More info on Sending Files &#187;
-        thumb: Optional. Thumbnail of the file sent; can be ignored if thumbnail generation for the file is supported server-side. The thumbnail should be in JPEG format and less than 200 kB in size. A thumbnail's width and height should not exceed 320. Ignored if the file is not uploaded using multipart/form-data. Thumbnails can't be reused and can be only uploaded as a new file, so you can pass &#8220;attach://&lt;file_attach_name&gt;&#8221; if the thumbnail was uploaded using multipart/form-data under &lt;file_attach_name&gt;. More info on Sending Files &#187;
+        media: File to send. Pass a file_id to send a file that exists on the Telegram servers (recommended), pass an HTTP URL for Telegram to get a file from the Internet, or pass &#8220;attach://&lt;file_attach_name&gt;&#8221; to upload a new one using multipart/form-data under &lt;file_attach_name&gt; name. More information on Sending Files &#187;
+        thumb: Optional. Thumbnail of the file sent; can be ignored if thumbnail generation for the file is supported server-side. The thumbnail should be in JPEG format and less than 200 kB in size. A thumbnail's width and height should not exceed 320. Ignored if the file is not uploaded using multipart/form-data. Thumbnails can't be reused and can be only uploaded as a new file, so you can pass &#8220;attach://&lt;file_attach_name&gt;&#8221; if the thumbnail was uploaded using multipart/form-data under &lt;file_attach_name&gt;. More information on Sending Files &#187;
         caption: Optional. Caption of the animation to be sent, 0-1024 characters after entities parsing
         parse_mode: Optional. Mode for parsing entities in the animation caption. See formatting options for more details.
         caption_entities: Optional. List of special entities that appear in the caption, which can be specified instead of parse_mode
@@ -1268,8 +1375,8 @@ class InputMediaAudio(BaseModel):
 
     Arguments:
         type: Type of the result, must be audio
-        media: File to send. Pass a file_id to send a file that exists on the Telegram servers (recommended), pass an HTTP URL for Telegram to get a file from the Internet, or pass &#8220;attach://&lt;file_attach_name&gt;&#8221; to upload a new one using multipart/form-data under &lt;file_attach_name&gt; name. More info on Sending Files &#187;
-        thumb: Optional. Thumbnail of the file sent; can be ignored if thumbnail generation for the file is supported server-side. The thumbnail should be in JPEG format and less than 200 kB in size. A thumbnail's width and height should not exceed 320. Ignored if the file is not uploaded using multipart/form-data. Thumbnails can't be reused and can be only uploaded as a new file, so you can pass &#8220;attach://&lt;file_attach_name&gt;&#8221; if the thumbnail was uploaded using multipart/form-data under &lt;file_attach_name&gt;. More info on Sending Files &#187;
+        media: File to send. Pass a file_id to send a file that exists on the Telegram servers (recommended), pass an HTTP URL for Telegram to get a file from the Internet, or pass &#8220;attach://&lt;file_attach_name&gt;&#8221; to upload a new one using multipart/form-data under &lt;file_attach_name&gt; name. More information on Sending Files &#187;
+        thumb: Optional. Thumbnail of the file sent; can be ignored if thumbnail generation for the file is supported server-side. The thumbnail should be in JPEG format and less than 200 kB in size. A thumbnail's width and height should not exceed 320. Ignored if the file is not uploaded using multipart/form-data. Thumbnails can't be reused and can be only uploaded as a new file, so you can pass &#8220;attach://&lt;file_attach_name&gt;&#8221; if the thumbnail was uploaded using multipart/form-data under &lt;file_attach_name&gt;. More information on Sending Files &#187;
         caption: Optional. Caption of the audio to be sent, 0-1024 characters after entities parsing
         parse_mode: Optional. Mode for parsing entities in the audio caption. See formatting options for more details.
         caption_entities: Optional. List of special entities that appear in the caption, which can be specified instead of parse_mode
@@ -1294,8 +1401,8 @@ class InputMediaDocument(BaseModel):
 
     Arguments:
         type: Type of the result, must be document
-        media: File to send. Pass a file_id to send a file that exists on the Telegram servers (recommended), pass an HTTP URL for Telegram to get a file from the Internet, or pass &#8220;attach://&lt;file_attach_name&gt;&#8221; to upload a new one using multipart/form-data under &lt;file_attach_name&gt; name. More info on Sending Files &#187;
-        thumb: Optional. Thumbnail of the file sent; can be ignored if thumbnail generation for the file is supported server-side. The thumbnail should be in JPEG format and less than 200 kB in size. A thumbnail's width and height should not exceed 320. Ignored if the file is not uploaded using multipart/form-data. Thumbnails can't be reused and can be only uploaded as a new file, so you can pass &#8220;attach://&lt;file_attach_name&gt;&#8221; if the thumbnail was uploaded using multipart/form-data under &lt;file_attach_name&gt;. More info on Sending Files &#187;
+        media: File to send. Pass a file_id to send a file that exists on the Telegram servers (recommended), pass an HTTP URL for Telegram to get a file from the Internet, or pass &#8220;attach://&lt;file_attach_name&gt;&#8221; to upload a new one using multipart/form-data under &lt;file_attach_name&gt; name. More information on Sending Files &#187;
+        thumb: Optional. Thumbnail of the file sent; can be ignored if thumbnail generation for the file is supported server-side. The thumbnail should be in JPEG format and less than 200 kB in size. A thumbnail's width and height should not exceed 320. Ignored if the file is not uploaded using multipart/form-data. Thumbnails can't be reused and can be only uploaded as a new file, so you can pass &#8220;attach://&lt;file_attach_name&gt;&#8221; if the thumbnail was uploaded using multipart/form-data under &lt;file_attach_name&gt;. More information on Sending Files &#187;
         caption: Optional. Caption of the document to be sent, 0-1024 characters after entities parsing
         parse_mode: Optional. Mode for parsing entities in the document caption. See formatting options for more details.
         caption_entities: Optional. List of special entities that appear in the caption, which can be specified instead of parse_mode
@@ -1324,6 +1431,7 @@ class Sticker(BaseModel):
         thumb: Optional. Sticker thumbnail in the .WEBP or .JPG format
         emoji: Optional. Emoji associated with the sticker
         set_name: Optional. Name of the sticker set to which the sticker belongs
+        premium_animation: Optional. Premium animation for the sticker, if the sticker is premium
         mask_position: Optional. For mask stickers, the position where the mask should be placed
         file_size: Optional. File size in bytes
     '''
@@ -1336,6 +1444,7 @@ class Sticker(BaseModel):
     thumb: Optional["PhotoSize"]
     emoji: Optional["str"]
     set_name: Optional["str"]
+    premium_animation: Optional["File"]
     mask_position: Optional["MaskPosition"]
     file_size: Optional["int"]
 
@@ -1378,14 +1487,6 @@ class MaskPosition(BaseModel):
     scale: "float"
 
 
-class sendSticker(BaseModel):
-    '''
-    Use this method to send static .WEBP, animated .TGS, or video .WEBM stickers. On success, the sent Message is returned.
-
-    Arguments:
-    '''
-pass
-
 class InlineQuery(BaseModel):
     '''
     This object represents an incoming inline query. When the user sends an empty query, your bot could return some default or trending results.
@@ -1395,7 +1496,7 @@ class InlineQuery(BaseModel):
         from_: Sender
         query: Text of the query (up to 256 characters)
         offset: Offset of the results to be returned, can be controlled by the bot
-        chat_type: Optional. Type of the chat, from which the inline query was sent. Can be either &#8220;sender&#8221; for a private chat with the inline query sender, &#8220;private&#8221;, &#8220;group&#8221;, &#8220;supergroup&#8221;, or &#8220;channel&#8221;. The chat type should be always known for requests sent from official clients and most third-party clients, unless the request was sent from a secret chat
+        chat_type: Optional. Type of the chat from which the inline query was sent. Can be either &#8220;sender&#8221; for a private chat with the inline query sender, &#8220;private&#8221;, &#8220;group&#8221;, &#8220;supergroup&#8221;, or &#8220;channel&#8221;. The chat type should be always known for requests sent from official clients and most third-party clients, unless the request was sent from a secret chat
         location: Optional. Sender location, only for bots that request user location
     '''
 
@@ -1528,7 +1629,7 @@ class InlineQueryResultMpeg4Gif(BaseModel):
     Arguments:
         type: Type of the result, must be mpeg4_gif
         id: Unique identifier for this result, 1-64 bytes
-        mpeg4_url: A valid URL for the MP4 file. File size must not exceed 1MB
+        mpeg4_url: A valid URL for the MPEG4 file. File size must not exceed 1MB
         mpeg4_width: Optional. Video width
         mpeg4_height: Optional. Video height
         mpeg4_duration: Optional. Video duration in seconds
@@ -1635,7 +1736,7 @@ class InlineQueryResultDocument(BaseModel):
         parse_mode: Optional. Mode for parsing entities in the document caption. See formatting options for more details.
         caption_entities: Optional. List of special entities that appear in the caption, which can be specified instead of parse_mode
         document_url: A valid URL for the file
-        mime_type: Mime type of the content of the file, either &#8220;application/pdf&#8221; or &#8220;application/zip&#8221;
+        mime_type: MIME type of the content of the file, either &#8220;application/pdf&#8221; or &#8220;application/zip&#8221;
         description: Optional. Short description of the result
         reply_markup: Optional. Inline keyboard attached to the message
         input_message_content: Optional. Content of the message to be sent instead of the file
@@ -1840,7 +1941,7 @@ class InlineQueryResultCachedMpeg4Gif(BaseModel):
     Arguments:
         type: Type of the result, must be mpeg4_gif
         id: Unique identifier for this result, 1-64 bytes
-        mpeg4_file_id: A valid file identifier for the MP4 file
+        mpeg4_file_id: A valid file identifier for the MPEG4 file
         title: Optional. Title for the result
         caption: Optional. Caption of the MPEG-4 file to be sent, 0-1024 characters after entities parsing
         parse_mode: Optional. Mode for parsing entities in the caption. See formatting options for more details.
@@ -2075,22 +2176,22 @@ class InputInvoiceMessageContent(BaseModel):
         title: Product name, 1-32 characters
         description: Product description, 1-255 characters
         payload: Bot-defined invoice payload, 1-128 bytes. This will not be displayed to the user, use for your internal processes.
-        provider_token: Payment provider token, obtained via Botfather
+        provider_token: Payment provider token, obtained via @BotFather
         currency: Three-letter ISO 4217 currency code, see more on currencies
         prices: Price breakdown, a JSON-serialized list of components (e.g. product price, tax, discount, delivery cost, delivery tax, bonus, etc.)
         max_tip_amount: Optional. The maximum accepted amount for tips in the smallest units of the currency (integer, not float/double). For example, for a maximum tip of US$ 1.45 pass max_tip_amount = 145. See the exp parameter in currencies.json, it shows the number of digits past the decimal point for each currency (2 for the majority of currencies). Defaults to 0
         suggested_tip_amounts: Optional. A JSON-serialized array of suggested amounts of tip in the smallest units of the currency (integer, not float/double). At most 4 suggested tip amounts can be specified. The suggested tip amounts must be positive, passed in a strictly increased order and must not exceed max_tip_amount.
         provider_data: Optional. A JSON-serialized object for data about the invoice, which will be shared with the payment provider. A detailed description of the required fields should be provided by the payment provider.
-        photo_url: Optional. URL of the product photo for the invoice. Can be a photo of the goods or a marketing image for a service. People like it better when they see what they are paying for.
-        photo_size: Optional. Photo size
+        photo_url: Optional. URL of the product photo for the invoice. Can be a photo of the goods or a marketing image for a service.
+        photo_size: Optional. Photo size in bytes
         photo_width: Optional. Photo width
         photo_height: Optional. Photo height
         need_name: Optional. Pass True, if you require the user's full name to complete the order
         need_phone_number: Optional. Pass True, if you require the user's phone number to complete the order
         need_email: Optional. Pass True, if you require the user's email address to complete the order
         need_shipping_address: Optional. Pass True, if you require the user's shipping address to complete the order
-        send_phone_number_to_provider: Optional. Pass True, if user's phone number should be sent to provider
-        send_email_to_provider: Optional. Pass True, if user's email address should be sent to provider
+        send_phone_number_to_provider: Optional. Pass True, if the user's phone number should be sent to provider
+        send_email_to_provider: Optional. Pass True, if the user's email address should be sent to provider
         is_flexible: Optional. Pass True, if the final price depends on the shipping method
     '''
     title: "str"
@@ -2175,7 +2276,7 @@ class ShippingAddress(BaseModel):
     This object represents a shipping address.
 
     Arguments:
-        country_code: ISO 3166-1 alpha-2 country code
+        country_code: Two-letter ISO 3166-1 alpha-2 country code
         state: State, if applicable
         city: City
         street_line1: First line for the address
@@ -2229,7 +2330,7 @@ class SuccessfulPayment(BaseModel):
         total_amount: Total price in the smallest units of the currency (integer, not float/double). For example, for a price of US$ 1.45 pass amount = 145. See the exp parameter in currencies.json, it shows the number of digits past the decimal point for each currency (2 for the majority of currencies).
         invoice_payload: Bot specified invoice payload
         shipping_option_id: Optional. Identifier of the shipping option chosen by the user
-        order_info: Optional. Order info provided by the user
+        order_info: Optional. Order information provided by the user
         telegram_payment_charge_id: Telegram payment identifier
         provider_payment_charge_id: Provider payment identifier
     '''
@@ -2276,7 +2377,7 @@ class PreCheckoutQuery(BaseModel):
         total_amount: Total price in the smallest units of the currency (integer, not float/double). For example, for a price of US$ 1.45 pass amount = 145. See the exp parameter in currencies.json, it shows the number of digits past the decimal point for each currency (2 for the majority of currencies).
         invoice_payload: Bot specified invoice payload
         shipping_option_id: Optional. Identifier of the shipping option chosen by the user
-        order_info: Optional. Order info provided by the user
+        order_info: Optional. Order information provided by the user
     '''
 
     @root_validator(pre=True)
@@ -2296,7 +2397,7 @@ class PreCheckoutQuery(BaseModel):
 
 class PassportData(BaseModel):
     '''
-    Contains information about Telegram Passport data shared with the bot by the user.
+    Describes Telegram Passport data shared with the bot by the user.
 
     Arguments:
         data: Array with information about documents and other Telegram Passport elements that was shared with the bot
@@ -2324,7 +2425,7 @@ class PassportFile(BaseModel):
 
 class EncryptedPassportElement(BaseModel):
     '''
-    Contains information about documents or other Telegram Passport elements shared with the bot by the user.
+    Describes documents or other Telegram Passport elements shared with the bot by the user.
 
     Arguments:
         type: Element type. One of &#8220;personal_details&#8221;, &#8220;passport&#8221;, &#8220;driver_license&#8221;, &#8220;identity_card&#8221;, &#8220;internal_passport&#8221;, &#8220;address&#8221;, &#8220;utility_bill&#8221;, &#8220;bank_statement&#8221;, &#8220;rental_agreement&#8221;, &#8220;passport_registration&#8221;, &#8220;temporary_registration&#8221;, &#8220;phone_number&#8221;, &#8220;email&#8221;.
@@ -2352,7 +2453,7 @@ class EncryptedPassportElement(BaseModel):
 
 class EncryptedCredentials(BaseModel):
     '''
-    Contains data required for decrypting and authenticating EncryptedPassportElement. See the Telegram Passport Documentation for a complete description of the data decryption and authentication processes.
+    Describes data required for decrypting and authenticating EncryptedPassportElement. See the Telegram Passport Documentation for a complete description of the data decryption and authentication processes.
 
     Arguments:
         data: Base64-encoded encrypted JSON-serialized data with unique user's payload, data hashes and secrets required for EncryptedPassportElement decryption and authentication
@@ -2499,22 +2600,6 @@ class PassportElementErrorTranslationFiles(BaseModel):
     source: "str"
     type: "str"
     file_hashes: List["str"]
-    message: "str"
-
-
-class PassportElementErrorUnspecified(BaseModel):
-    '''
-    Represents an issue in an unspecified place. The error is considered resolved when new data is added.
-
-    Arguments:
-        source: Error source, must be unspecified
-        type: Type of element of the user's Telegram Passport which has the issue
-        element_hash: Base64-encoded element hash
-        message: Error message
-    '''
-    source: "str"
-    type: "str"
-    element_hash: "str"
     message: "str"
 
 

@@ -39,8 +39,8 @@ from .event import (
     LeafChatMemberEvent,
     NewChatTitleEvent,
     DeleteChatPhotoEvent,
-    VoiceChatEndedEvent,
-    VoiceChatStartedEvent,
+    VideoChatStartedEvent,
+    VideoChatEndedEvent,
     CallbackQueryEvent
 )
 from .message import Message, MessageSegment
@@ -237,9 +237,9 @@ class Adapter(BaseAdapter):
                     elif "new_chat_title" in json_data["message"]:
                         event = NewChatTitleEvent.parse_obj(json_data)
                     elif "voice_chat_started" in json_data["message"]:
-                        event = VoiceChatStartedEvent.parse_obj(json_data)
+                        event = VideoChatStartedEvent.parse_obj(json_data)
                     elif "voice_chat_ended" in json_data["message"]:
-                        event = VoiceChatEndedEvent.parse_obj(json_data)
+                        event = VideoChatEndedEvent.parse_obj(json_data)
                     else:
                         event = GroupMessageEvent.parse_obj(json_data)
             else:
