@@ -78,6 +78,10 @@ class MessageSegment(BaseMessageSegment["Message"]):
             ms_photo = photo
         elif isinstance(photo, Path):
             ms_photo = f"file:///{photo.resolve()}"
+        elif isinstance(photo, str):
+            ms_photo = photo # Todo: Process base64 in MS
+        else:
+            ms_photo = photo
         ms_dict["photo"] = ms_photo
         ms_dict.update(kwargs)
         if caption:
