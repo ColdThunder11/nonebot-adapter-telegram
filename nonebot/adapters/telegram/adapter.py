@@ -46,7 +46,7 @@ from .event import (
 from .message import Message, MessageSegment
 from .exception import NetworkError, ApiNotAvailable, ActionFailed, TelegramAdapterConfigException, MessageNotAcceptable
 from .utils import log
-from .cache import TelegramCache
+from .cache import TelegramCache,TelegramUserNameIdCache
 
 from nonebot.message import handle_event
 
@@ -57,6 +57,7 @@ class Adapter(BaseAdapter):
     bot_name: str
     use_long_polling: bool
     cache: TelegramCache
+    username_cache: TelegramUserNameIdCache
 
 
     @overrides(BaseAdapter)
@@ -84,6 +85,11 @@ class Adapter(BaseAdapter):
             raise TelegramAdapterConfigException("No avaliable driver type")
         #setup cache
         self.cache = TelegramCache()
+        self.username_cache = TelegramUserNameIdCache()
+        self.driver.on_startup(self._setup_adapter_async)
+
+    async def _setup_adapter_async(self):
+        await self.username_cache.init()
 
     @classmethod
     @overrides(BaseAdapter)
@@ -197,7 +203,7 @@ class Adapter(BaseAdapter):
     async def _handle_webhook(self, request: Request) -> Response:
         data = request.content
         json_data = json.loads(data)
-        event = self.json_to_event(json_data)
+        event = await self.json_to_event(json_data)
         try:
             await handle_event(Bot(self, self.bot_name), event)
         except Exception as e:
@@ -215,7 +221,7 @@ class Adapter(BaseAdapter):
                     event.to_me = True
                     print(f"event.message.text:{event.message.text}")
 
-    def json_to_event(self, json_data: Any) -> Optional[Event]:
+    async def json_to_event(self, json_data: Any) -> Optional[Event]:
         try:
             #print(json_data)
             if "callback_query" in json_data:
@@ -227,6 +233,8 @@ class Adapter(BaseAdapter):
                     return
                 json_data["user_id"] = json_data["message"]["from"]["id"]
                 json_data["group_id"] = json_data["message"]["chat"]["id"]
+                if "username" in json_data["message"]["from"]:
+                    await self.username_cache.update_cache(json_data["message"]["from"]["username"],json_data["message"]["from"]["id"])
                 if json_data["message"]["chat"]["type"] == "private":
                     event = PrivateMessageEvent.parse_obj(json_data)
                 elif "group" in json_data["message"]["chat"]["type"]:
@@ -286,7 +294,7 @@ class Adapter(BaseAdapter):
                         if offset < message["update_id"] + 1:
                             offset = message["update_id"] + 1
                             #print(f"offset update to {offset}")
-                        event = self.json_to_event(message)
+                        event = await self.json_to_event(message)
                         try:
                             loop = asyncio.get_event_loop() 
                             loop.create_task(polling_handle_event(message, bot, event))

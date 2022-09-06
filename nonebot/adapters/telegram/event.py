@@ -13,6 +13,7 @@ from nonebot.adapters import Event as BaseEvent
 
 from .message import Message, MessageSegment
 from .models import *
+from .cache import TelegramUserNameIdCache
 
 
 class Event(BaseEvent):
@@ -52,7 +53,7 @@ class Event(BaseEvent):
     def is_tome(self) -> bool:
         return True
 
-    #patch pydantic validate, ignore dict check(not recommand to use, just lazy) #For nb2 before https://github.com/nonebot/nonebot2/pull/876
+    # patch pydantic validate, ignore dict check(not recommand to use, just lazy) #For nb2 before https://github.com/nonebot/nonebot2/pull/876
     @classmethod
     @overrides(BaseModel)
     def validate(cls: BaseModel, value: Any) -> BaseModel:
@@ -69,9 +70,8 @@ class Event(BaseEvent):
         elif cls.__config__.orm_mode:
             return cls.from_orm(value)
         else:
-            #ignore dict check, directly throw wrror
+            # ignore dict check, directly throw wrror
             raise TypeError()
-
 
 
 class MessageEvent(Event):
@@ -113,43 +113,58 @@ class MessageEvent(Event):
 
     def get_message_struct_in_message(self, message: MessageBody) -> Message:
         if message.text:
-            boolean
-            return Message(message.text)
+            text_msg = message.text
+            msg_list: List[MessageSegment] = []
+            current_start_offset = 0
+            if message.entities:
+                for entitiy in message.entities:
+                    if entitiy.type == "mention":
+                        at_username = text_msg[current_start_offset+entitiy.offset +
+                                               1:current_start_offset+entitiy.offset+entitiy.length]
+                        if user_id := TelegramUserNameIdCache.get_inst().get_user_id(at_username):
+                            msg_list.append(MessageSegment.text(
+                                text_msg[current_start_offset:current_start_offset+entitiy.offset]))
+                            current_start_offset += entitiy.offset+entitiy.length
+                            msg_list.append(MessageSegment.at(user_id))
+            if current_start_offset < len(message.text):
+                msg_list.append(MessageSegment.text(
+                    text_msg[current_start_offset:]))
+            return Message(msg_list)
         data = {}
         if message.caption:
             data["caption"] = message.caption
         if message.photo:
             data.update(message.photo[0].dict())
             data["photo"] = message.photo[0].file_id
-            return Message(MessageSegment("photo",data))
+            return Message(MessageSegment("photo", data))
         elif message.document:
             data.update(message.document.dict())
             data["document"] = message.document.file_id
-            return Message(MessageSegment("document",data))
+            return Message(MessageSegment("document", data))
         elif message.sticker:
             data.update(message.sticker.dict())
             data["sticker"] = message.sticker.file_id
-            return Message(MessageSegment("sticker",data))
+            return Message(MessageSegment("sticker", data))
         elif message.voice:
             data.update(message.voice.dict())
             data["voice"] = message.voice.file_id
-            return Message(MessageSegment("voice",data))
+            return Message(MessageSegment("voice", data))
         elif message.audio:
             data.update(message.audio.dict())
             data["audio"] = message.audio.file_id
-            return Message(MessageSegment("audio",data))
+            return Message(MessageSegment("audio", data))
         elif message.animation:
             data.update(message.animation.dict())
             data["animation"] = message.animation.file_id
-            return Message(MessageSegment("animation",data))
+            return Message(MessageSegment("animation", data))
         elif message.video:
             data.update(message.video.dict())
             data["video"] = message.video.file_id
-            return Message(MessageSegment("video",data))
+            return Message(MessageSegment("video", data))
         elif message.video_note:
             data.update(message.video_note.dict())
             data["video_note"] = message.video_note.file_id
-            return Message(MessageSegment("video_note",data))
+            return Message(MessageSegment("video_note", data))
         return None
 
     def get_message_struct(self) -> Message:
@@ -205,7 +220,7 @@ class GroupMessageEvent(MessageEvent):
 class CallbackQueryEvent(MessageEvent):
     """CallbackQuery消息"""
 
-    #Infact,I think CallbackQuery should not be message, but treat it as message can make you easily build it into got
+    # Infact,I think CallbackQuery should not be message, but treat it as message can make you easily build it into got
     @overrides(Event)
     def get_type(self) -> Literal["message", "notice", "request", "meta_event"]:
         return "message"
@@ -228,7 +243,7 @@ class CallbackQueryEvent(MessageEvent):
 
     @overrides(Event)
     def get_message(self) -> Message:
-        return Message(MessageSegment("text",{"type": "callback_query", "text": self.callback_query.data}))
+        return Message(MessageSegment("text", {"type": "callback_query", "text": self.callback_query.data}))
 
 
 class NewChatMembersEvent(MessageEvent):
