@@ -189,7 +189,8 @@ class Bot(BaseBot):
                 data["text"] = f"@{at_user.username} " + data["text"]
             else:  # some people may not have username
                 data["text"] = f"{at_user.first_name} " + data["text"]  # 没测试
-                data["entities"] = []
+                if not "entities" in data:
+                    data["entities"] = []
                 data["entities"].append({
                     "type": "text_mention",
                     "offset": 0,
@@ -202,7 +203,8 @@ class Bot(BaseBot):
             else:  # some people may not have username
                 data["caption"] = f"{at_user.first_name} " + \
                     data["caption"]  # 没测试
-                data["caption_entities"] = []
+                if not "caption_entities" in data:
+                    data["caption_entities"] = []
                 data["caption_entities"].append({
                     "type": "text_mention",
                     "offset": 0,
@@ -312,6 +314,25 @@ class Bot(BaseBot):
             data["chat_id"] = chat_id
             if at_sender and isinstance(event, GroupMessageEvent):
                 self._process_at(data, event.message.from_)
+            # core_ms_index = 0
+            # for i in range(len(ms_list)):
+            #     if ms_list[i] == core_ms:
+            #         core_ms_index = 0
+            for ms in ms_list:
+                if ms.type == "at":
+                    user_info = await self.call_api("getChatMember",chat_id=event.group_id, user_id=ms.data["id"])
+                    if "username" in user_info["user"]:
+                        data["text"] = f" @{user_info['user']['username']} " + data["text"]
+                    else:
+                        if not "entities" in data:
+                            data["entities"] = []
+                        data["entities"].append({
+                            "type": "text_mention",
+                            "offset": 0,
+                            "length": len(user_info["user"]["first_name"]),
+                            "user": ms.data["id"]
+                        })
+                        data["text"] = user_info["user"]["first_name"] + data["text"]
             await self.call_api("sendMessage", **data)
             return
         if core_ms.type in media_tpye:
