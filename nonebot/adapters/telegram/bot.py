@@ -272,7 +272,10 @@ class Bot(BaseBot):
                             "file:///", "")
                         file_name = path.basename(file_path)
                         inputMediaPhoto["media"] = f"attach://{file_name}"
-                        files[file_name] = open(file_path, "rb")
+                        try:
+                            files[file_name] = open(file_path, "rb")
+                        except:
+                            files[file_name] = open( "/" + file_path, "rb")
                     elif ms.data["photo"].startswith("base64://"):
                         file_data: str = core_ms.data[core_ms.type].replace("base64://", "")
                         inputMediaPhoto["media"] = f"attach://{file_attach_num_name}"
@@ -300,7 +303,11 @@ class Bot(BaseBot):
                 file_path: str = data["thumb"].replace("file:///", "")
                 file_name = path.basename(file_path)
                 data["thumb"] = f"attach://{file_name}"
-                files[file_name] = open(file_path, "rb")
+                try:
+                    files[file_name] = open(file_path, "rb")
+                except:
+                    files[file_name] = open("/" + file_path, "rb")
+
         if core_ms.type == "text" or core_ms.type in media_tpye:
             if reply_message:
                 if event.message:
@@ -359,7 +366,10 @@ class Bot(BaseBot):
                     del data[core_ms.type]
                     file_path: str = core_ms.data[core_ms.type].replace(
                         "file:///", "")
-                    files[core_ms.type] = open(file_path, "rb")
+                    try:
+                        files[core_ms.type] = open(file_path, "rb")
+                    except:
+                        files[core_ms.type] = open("/" + file_path, "rb")
                 elif core_ms.data[core_ms.type].startswith("base64://"):
                     del data[core_ms.type]
                     file_data: str = core_ms.data[core_ms.type].replace(
