@@ -148,7 +148,7 @@ class Bot(BaseBot):
             return link
         result = await self.call_api("getFile", file_id=file_id)
         if not result['file_path']:
-            raise ActionFailed(403,"getFile not return correctly")
+            raise ActionFailed(403, "getFile not return correctly")
         if result['file_path'].startswith("/"):  # local bot api
             await self.adapter.cache.set_media_downloadlink(
                 file_id, result['file_path'])
@@ -248,7 +248,7 @@ class Bot(BaseBot):
             core_ms = ms_list[0]
         data = {}
         files = {}
-        if media_message_count > 1: #fix need
+        if media_message_count > 1:  # fix need
             # send as media group 咕咕咕
             data["chat_id"] = str(chat_id)
             data["media"] = []
@@ -259,14 +259,14 @@ class Bot(BaseBot):
                     data["reply_to_message_id"] = event.callback_query.message.reply_to_message["message_id"]
             files = {}
             file_attach_num_name = 0
-            for ms in media_message_list: #fix need
+            for ms in media_message_list:  # fix need
                 file_attach_num_name += 1
                 if ms.type != "photo":
                     raise MessageNotSupport()
                 inputMediaPhoto: dict = {"type": "photo"}
                 if "caption" in ms.data:
                     inputMediaPhoto["caption"] = ms.data["caption"]
-                if isinstance(ms.data["photo"],str):
+                if isinstance(ms.data["photo"], str):
                     if ms.data["photo"].startswith("file:///"):
                         file_path: str = core_ms.data[core_ms.type].replace(
                             "file:///", "")
@@ -275,17 +275,20 @@ class Bot(BaseBot):
                         try:
                             files[file_name] = open(file_path, "rb")
                         except:
-                            files[file_name] = open( "/" + file_path, "rb")
+                            files[file_name] = open("/" + file_path, "rb")
                     elif ms.data["photo"].startswith("base64://"):
-                        file_data: str = core_ms.data[core_ms.type].replace("base64://", "")
+                        file_data: str = core_ms.data[core_ms.type].replace(
+                            "base64://", "")
                         inputMediaPhoto["media"] = f"attach://{file_attach_num_name}"
-                        files[file_attach_num_name] = BytesIO(base64.b64decode(file_data))
+                        files[file_attach_num_name] = BytesIO(
+                            base64.b64decode(file_data))
                     else:
                         inputMediaPhoto["media"] = ms.data["photo"]
-                elif isinstance(core_ms.data[core_ms.type],bytes):
+                elif isinstance(core_ms.data[core_ms.type], bytes):
                     inputMediaPhoto["media"] = f"attach://{file_attach_num_name}"
-                    files[file_attach_num_name] = BytesIO(core_ms.data[core_ms.type])
-                elif isinstance(core_ms.data[core_ms.type],BytesIO):
+                    files[file_attach_num_name] = BytesIO(
+                        core_ms.data[core_ms.type])
+                elif isinstance(core_ms.data[core_ms.type], BytesIO):
                     inputMediaPhoto["media"] = f"attach://{file_attach_num_name}"
                     files[file_attach_num_name] = core_ms.data[core_ms.type]
                 else:
@@ -321,25 +324,25 @@ class Bot(BaseBot):
             data["chat_id"] = chat_id
             if at_sender and isinstance(event, GroupMessageEvent):
                 self._process_at(data, event.message.from_)
-            # core_ms_index = 0
-            # for i in range(len(ms_list)):
-            #     if ms_list[i] == core_ms:
-            #         core_ms_index = 0
+            # process at and text mixed message
+            data["text"] = ""
             for ms in ms_list:
-                if ms.type == "at":
-                    user_info = await self.call_api("getChatMember",chat_id=event.group_id, user_id=ms.data["id"])
+                if ms.type == "text":
+                    data["text"] += ms.data["text"]
+                elif ms.type == "at":
+                    user_info = await self.call_api("getChatMember", chat_id=event.group_id, user_id=ms.data["id"])
                     if "username" in user_info["user"]:
-                        data["text"] = f" @{user_info['user']['username']} " + data["text"]
+                        data["text"] += f" @{user_info['user']['username']} "
                     else:
                         if not "entities" in data:
                             data["entities"] = []
                         data["entities"].append({
                             "type": "text_mention",
-                            "offset": 0,
+                            "offset": len(data["text"]),
                             "length": len(user_info["user"]["first_name"]),
                             "user": ms.data["id"]
                         })
-                        data["text"] = user_info["user"]["first_name"] + data["text"]
+                        data["text"] += user_info["user"]["first_name"]
             await self.call_api("sendMessage", **data)
             return
         if core_ms.type in media_tpye:
@@ -347,21 +350,21 @@ class Bot(BaseBot):
             if "caption" in core_ms.data:
                 if at_sender and isinstance(event, GroupMessageEvent):
                     self._process_at(data, event.message.from_)
-            if isinstance(core_ms.data[core_ms.type],bytes):
+            if isinstance(core_ms.data[core_ms.type], bytes):
                 bio = BytesIO(core_ms.data[core_ms.type])
                 if "file_name" in core_ms.data:
                     files[core_ms.type] = (core_ms.data["file_name"], bio)
                 else:
                     files[core_ms.type] = bio
                 del data[core_ms.type]
-            elif isinstance(core_ms.data[core_ms.type],BytesIO):
+            elif isinstance(core_ms.data[core_ms.type], BytesIO):
                 bio = core_ms.data[core_ms.type]
                 if "file_name" in core_ms.data:
                     files[core_ms.type] = (core_ms.data["file_name"], bio)
                 else:
                     files[core_ms.type] = bio
                 del data[core_ms.type]
-            elif isinstance(core_ms.data[core_ms.type],str):
+            elif isinstance(core_ms.data[core_ms.type], str):
                 if core_ms.data[core_ms.type].startswith("file:///"):
                     del data[core_ms.type]
                     file_path: str = core_ms.data[core_ms.type].replace(
