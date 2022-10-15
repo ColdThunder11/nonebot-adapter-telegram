@@ -10,6 +10,7 @@
 ```shell
 pip install nonebot-adapter-antelegram
 ```
+注意：强烈建议安装redis，默认端口监听本地，无密码，最大db数>=3，否则部分功能将不可用
 ## 上路
 一、  
 新建项目文件夹  
