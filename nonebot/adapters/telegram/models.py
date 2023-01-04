@@ -26,6 +26,7 @@ class MessageEntityType(str, Enum):
     pre = "pre"
     text_link = "text_link"
     text_mention = "text_mention"
+    custom_emoji = "custom_emoji"
 
 class Update(BaseModel):
     '''
@@ -106,9 +107,13 @@ class Chat(BaseModel):
         username: Optional. Username, for private chats, supergroups and channels if available
         first_name: Optional. First name of the other party in a private chat
         last_name: Optional. Last name of the other party in a private chat
+        is_forum: Optional. True, if the supergroup chat is a forum (has topics enabled)
         photo: Optional. Chat photo. Returned only in getChat.
+        active_usernames: Optional. If non-empty, the list of all active chat usernames; for private chats, supergroups and channels. Returned only in getChat.
+        emoji_status_custom_emoji_id: Optional. Custom emoji identifier of emoji status of the other party in a private chat. Returned only in getChat.
         bio: Optional. Bio of the other party in a private chat. Returned only in getChat.
         has_private_forwards: Optional. True, if privacy settings of the other party in the private chat allows to use tg://user?id=&lt;user_id&gt; links only in chats with the user. Returned only in getChat.
+        has_restricted_voice_and_video_messages: Optional. True, if the privacy settings of the other party restrict sending voice and video note messages in the private chat. Returned only in getChat.
         join_to_send_messages: Optional. True, if users need to join the supergroup before they can send messages. Returned only in getChat.
         join_by_request: Optional. True, if all users directly joining the supergroup need to be approved by supergroup administrators. Returned only in getChat.
         description: Optional. Description, for groups, supergroups and channel chats. Returned only in getChat.
@@ -117,6 +122,8 @@ class Chat(BaseModel):
         permissions: Optional. Default chat member permissions, for groups and supergroups. Returned only in getChat.
         slow_mode_delay: Optional. For supergroups, the minimum allowed delay between consecutive messages sent by each unpriviledged user; in seconds. Returned only in getChat.
         message_auto_delete_time: Optional. The time after which all messages sent to the chat will be automatically deleted; in seconds. Returned only in getChat.
+        has_aggressive_anti_spam_enabled: Optional. True, if aggressive anti-spam checks are enabled in the supergroup. The field is only available to chat administrators. Returned only in getChat.
+        has_hidden_members: Optional. True, if non-administrators can only get the list of bots and administrators in the chat. Returned only in getChat.
         has_protected_content: Optional. True, if messages from the chat can't be forwarded to other chats. Returned only in getChat.
         sticker_set_name: Optional. For supergroups, name of group sticker set. Returned only in getChat.
         can_set_sticker_set: Optional. True, if the bot can change the group sticker set. Returned only in getChat.
@@ -129,9 +136,13 @@ class Chat(BaseModel):
     username: Optional["str"]
     first_name: Optional["str"]
     last_name: Optional["str"]
+    is_forum: Optional["bool"]
     photo: Optional["ChatPhoto"]
+    active_usernames: Optional[List["str"]]
+    emoji_status_custom_emoji_id: Optional["str"]
     bio: Optional["str"]
     has_private_forwards: Optional["bool"]
+    has_restricted_voice_and_video_messages: Optional["bool"]
     join_to_send_messages: Optional["bool"]
     join_by_request: Optional["bool"]
     description: Optional["str"]
@@ -140,6 +151,8 @@ class Chat(BaseModel):
     permissions: Optional["ChatPermissions"]
     slow_mode_delay: Optional["int"]
     message_auto_delete_time: Optional["int"]
+    has_aggressive_anti_spam_enabled: Optional["bool"]
+    has_hidden_members: Optional["bool"]
     has_protected_content: Optional["bool"]
     sticker_set_name: Optional["str"]
     can_set_sticker_set: Optional["bool"]
@@ -153,6 +166,7 @@ class MessageBody(BaseModel):
 
     Arguments:
         message_id: Unique message identifier inside this chat
+        message_thread_id: Optional. Unique identifier of a message thread to which the message belongs; for supergroups only
         from_: Optional. Sender of the message; empty for messages sent to channels. For backward compatibility, the field contains a fake sender user in non-channel chats, if the message was sent on behalf of a chat.
         sender_chat: Optional. Sender of the message, sent on behalf of a chat. For example, the channel itself for channel posts, the supergroup itself for messages from anonymous group administrators, the linked channel for messages automatically forwarded to the discussion group. For backward compatibility, the field from contains a fake sender user in non-channel chats, if the message was sent on behalf of a chat.
         date: Date the message was sent in Unix time
@@ -163,6 +177,7 @@ class MessageBody(BaseModel):
         forward_signature: Optional. For forwarded messages that were originally sent in channels or by an anonymous chat administrator, signature of the message sender if present
         forward_sender_name: Optional. Sender's name for messages forwarded from users who disallow adding a link to their account in forwarded messages
         forward_date: Optional. For forwarded messages, date the original message was sent in Unix time
+        is_topic_message: Optional. True, if the message is sent to a forum topic
         is_automatic_forward: Optional. True, if the message is a channel post that was automatically forwarded to the connected discussion group
         reply_to_message: Optional. For replies, the original message. Note that the Message object in this field will not contain further reply_to_message fields even if it itself is a reply.
         via_bot: Optional. Bot through which the message was sent
@@ -182,6 +197,7 @@ class MessageBody(BaseModel):
         voice: Optional. Message is a voice message, information about the file
         caption: Optional. Caption for the animation, audio, document, photo, video or voice
         caption_entities: Optional. For messages with a caption, special entities like usernames, URLs, bot commands, etc. that appear in the caption
+        has_media_spoiler: Optional. True, if the message media is covered by a spoiler animation
         contact: Optional. Message is a shared contact, information about the contact
         dice: Optional. Message is a dice with random value
         game: Optional. Message is a game, information about the game. More about games &#187;
@@ -203,8 +219,15 @@ class MessageBody(BaseModel):
         invoice: Optional. Message is an invoice for a payment, information about the invoice. More about payments &#187;
         successful_payment: Optional. Message is a service message about a successful payment, information about the payment. More about payments &#187;
         connected_website: Optional. The domain name of the website on which the user has logged in. More about Telegram Login &#187;
+        write_access_allowed: Optional. Service message: the user allowed the bot added to the attachment menu to write messages
         passport_data: Optional. Telegram Passport data
         proximity_alert_triggered: Optional. Service message. A user in the chat triggered another user's proximity alert while sharing Live Location.
+        forum_topic_created: Optional. Service message: forum topic created
+        forum_topic_edited: Optional. Service message: forum topic edited
+        forum_topic_closed: Optional. Service message: forum topic closed
+        forum_topic_reopened: Optional. Service message: forum topic reopened
+        general_forum_topic_hidden: Optional. Service message: the 'General' forum topic hidden
+        general_forum_topic_unhidden: Optional. Service message: the 'General' forum topic unhidden
         video_chat_scheduled: Optional. Service message: video chat scheduled
         video_chat_started: Optional. Service message: video chat started
         video_chat_ended: Optional. Service message: video chat ended
@@ -220,6 +243,7 @@ class MessageBody(BaseModel):
             del values["from"]
         return values
     message_id: "int"
+    message_thread_id: Optional["int"]
     from_: Optional["User"]
     sender_chat: Optional["Chat"]
     date: "int"
@@ -230,6 +254,7 @@ class MessageBody(BaseModel):
     forward_signature: Optional["str"]
     forward_sender_name: Optional["str"]
     forward_date: Optional["int"]
+    is_topic_message: Optional["bool"]
     is_automatic_forward: Optional["bool"]
     reply_to_message: Optional["MessageBody"]
     via_bot: Optional["User"]
@@ -249,6 +274,7 @@ class MessageBody(BaseModel):
     voice: Optional["Voice"]
     caption: Optional["str"]
     caption_entities: Optional[List["MessageEntity"]]
+    has_media_spoiler: Optional["bool"]
     contact: Optional["Contact"]
     dice: Optional["Dice"]
     game: Optional["Game"]
@@ -270,8 +296,15 @@ class MessageBody(BaseModel):
     invoice: Optional["Invoice"]
     successful_payment: Optional["SuccessfulPayment"]
     connected_website: Optional["str"]
+    write_access_allowed: Optional["WriteAccessAllowed"]
     passport_data: Optional["PassportData"]
     proximity_alert_triggered: Optional["ProximityAlertTriggered"]
+    forum_topic_created: Optional["ForumTopicCreated"]
+    forum_topic_edited: Optional["ForumTopicEdited"]
+    forum_topic_closed: Optional["ForumTopicClosed"]
+    forum_topic_reopened: Optional["ForumTopicReopened"]
+    general_forum_topic_hidden: Optional["GeneralForumTopicHidden"]
+    general_forum_topic_unhidden: Optional["GeneralForumTopicUnhidden"]
     video_chat_scheduled: Optional["VideoChatScheduled"]
     video_chat_started: Optional["VideoChatStarted"]
     video_chat_ended: Optional["VideoChatEnded"]
@@ -295,12 +328,13 @@ class MessageEntity(BaseModel):
     This object represents one special entity in a text message. For example, hashtags, usernames, URLs, etc.
 
     Arguments:
-        type: Type of the entity. Currently, can be &#8220;mention&#8221; (@username), &#8220;hashtag&#8221; (#hashtag), &#8220;cashtag&#8221; ($USD), &#8220;bot_command&#8221; (/start@jobs_bot), &#8220;url&#8221; (https://telegram.org), &#8220;email&#8221; (do-not-reply@telegram.org), &#8220;phone_number&#8221; (+1-212-555-0123), &#8220;bold&#8221; (bold text), &#8220;italic&#8221; (italic text), &#8220;underline&#8221; (underlined text), &#8220;strikethrough&#8221; (strikethrough text), &#8220;spoiler&#8221; (spoiler message), &#8220;code&#8221; (monowidth string), &#8220;pre&#8221; (monowidth block), &#8220;text_link&#8221; (for clickable text URLs), &#8220;text_mention&#8221; (for users without usernames)
+        type: Type of the entity. Currently, can be &#8220;mention&#8221; (@username), &#8220;hashtag&#8221; (#hashtag), &#8220;cashtag&#8221; ($USD), &#8220;bot_command&#8221; (/start@jobs_bot), &#8220;url&#8221; (https://telegram.org), &#8220;email&#8221; (do-not-reply@telegram.org), &#8220;phone_number&#8221; (+1-212-555-0123), &#8220;bold&#8221; (bold text), &#8220;italic&#8221; (italic text), &#8220;underline&#8221; (underlined text), &#8220;strikethrough&#8221; (strikethrough text), &#8220;spoiler&#8221; (spoiler message), &#8220;code&#8221; (monowidth string), &#8220;pre&#8221; (monowidth block), &#8220;text_link&#8221; (for clickable text URLs), &#8220;text_mention&#8221; (for users without usernames), &#8220;custom_emoji&#8221; (for inline custom emoji stickers)
         offset: Offset in UTF-16 code units to the start of the entity
         length: Length of the entity in UTF-16 code units
         url: Optional. For &#8220;text_link&#8221; only, URL that will be opened after user taps on the text
         user: Optional. For &#8220;text_mention&#8221; only, the mentioned user
         language: Optional. For &#8220;pre&#8221; only, the programming language of the entity text
+        custom_emoji_id: Optional. For &#8220;custom_emoji&#8221; only, unique identifier of the custom emoji. Use getCustomEmojiStickers to get full information about the sticker
     '''
     type: "MessageEntityType"
     offset: "int"
@@ -308,6 +342,7 @@ class MessageEntity(BaseModel):
     url: Optional["str"]
     user: Optional["User"]
     language: Optional["str"]
+    custom_emoji_id: Optional["str"]
 
 
 class PhotoSize(BaseModel):
@@ -632,6 +667,72 @@ class MessageAutoDeleteTimerChanged(BaseModel):
     message_auto_delete_time: "int"
 
 
+class ForumTopicCreated(BaseModel):
+    '''
+    This object represents a service message about a new forum topic created in the chat.
+
+    Arguments:
+        name: Name of the topic
+        icon_color: Color of the topic icon in RGB format
+        icon_custom_emoji_id: Optional. Unique identifier of the custom emoji shown as the topic icon
+    '''
+    name: "str"
+    icon_color: "int"
+    icon_custom_emoji_id: Optional["str"]
+
+
+class ForumTopicClosed(BaseModel):
+    '''
+    This object represents a service message about a forum topic closed in the chat. Currently holds no information.
+
+    Arguments:
+    '''
+pass
+
+class ForumTopicEdited(BaseModel):
+    '''
+    This object represents a service message about an edited forum topic.
+
+    Arguments:
+        name: Optional. New name of the topic, if it was edited
+        icon_custom_emoji_id: Optional. New identifier of the custom emoji shown as the topic icon, if it was edited; an empty string if the icon was removed
+    '''
+    name: Optional["str"]
+    icon_custom_emoji_id: Optional["str"]
+
+
+class ForumTopicReopened(BaseModel):
+    '''
+    This object represents a service message about a forum topic reopened in the chat. Currently holds no information.
+
+    Arguments:
+    '''
+pass
+
+class GeneralForumTopicHidden(BaseModel):
+    '''
+    This object represents a service message about General forum topic hidden in the chat. Currently holds no information.
+
+    Arguments:
+    '''
+pass
+
+class GeneralForumTopicUnhidden(BaseModel):
+    '''
+    This object represents a service message about General forum topic unhidden in the chat. Currently holds no information.
+
+    Arguments:
+    '''
+pass
+
+class WriteAccessAllowed(BaseModel):
+    '''
+    This object represents a service message about a user allowing a bot added to the attachment menu to write messages. Currently holds no information.
+
+    Arguments:
+    '''
+pass
+
 class VideoChatScheduled(BaseModel):
     '''
     This object represents a service message about a video chat scheduled in the chat.
@@ -706,12 +807,14 @@ class ReplyKeyboardMarkup(BaseModel):
 
     Arguments:
         keyboard: Array of button rows, each represented by an Array of KeyboardButton objects
+        is_persistent: Optional. Requests clients to always show the keyboard when the regular keyboard is hidden. Defaults to false, in which case the custom keyboard can be hidden and opened with a keyboard icon.
         resize_keyboard: Optional. Requests clients to resize the keyboard vertically for optimal fit (e.g., make the keyboard smaller if there are just two rows of buttons). Defaults to false, in which case the custom keyboard is always of the same height as the app's standard keyboard.
         one_time_keyboard: Optional. Requests clients to hide the keyboard as soon as it's been used. The keyboard will still be available, but clients will automatically display the usual letter-keyboard in the chat - the user can press a special button in the input field to see the custom keyboard again. Defaults to false.
         input_field_placeholder: Optional. The placeholder to be shown in the input field when the keyboard is active; 1-64 characters
         selective: Optional. Use this parameter if you want to show the keyboard to specific users only. Targets: 1) users that are @mentioned in the text of the Message object; 2) if the bot's message is a reply (has reply_to_message_id), sender of the original message.Example: A user requests to change the bot's language, bot replies to the request with a keyboard to select the new language. Other users in the group don't see the keyboard.
     '''
     keyboard: List["KeyboardButton"]
+    is_persistent: Optional["bool"]
     resize_keyboard: Optional["bool"]
     one_time_keyboard: Optional["bool"]
     input_field_placeholder: Optional["str"]
@@ -903,6 +1006,7 @@ class ChatAdministratorRights(BaseModel):
         can_post_messages: Optional. True, if the administrator can post in the channel; channels only
         can_edit_messages: Optional. True, if the administrator can edit messages of other users and can pin messages; channels only
         can_pin_messages: Optional. True, if the user is allowed to pin messages; groups and supergroups only
+        can_manage_topics: Optional. True, if the user is allowed to create, rename, close, and reopen forum topics; supergroups only
     '''
     is_anonymous: "bool"
     can_manage_chat: "bool"
@@ -915,6 +1019,7 @@ class ChatAdministratorRights(BaseModel):
     can_post_messages: Optional["bool"]
     can_edit_messages: Optional["bool"]
     can_pin_messages: Optional["bool"]
+    can_manage_topics: Optional["bool"]
 
 
 class ChatMember(BaseModel):
@@ -960,6 +1065,7 @@ class ChatMemberAdministrator(BaseModel):
         can_post_messages: Optional. True, if the administrator can post in the channel; channels only
         can_edit_messages: Optional. True, if the administrator can edit messages of other users and can pin messages; channels only
         can_pin_messages: Optional. True, if the user is allowed to pin messages; groups and supergroups only
+        can_manage_topics: Optional. True, if the user is allowed to create, rename, close, and reopen forum topics; supergroups only
         custom_title: Optional. Custom title for this user
     '''
     status: "str"
@@ -976,6 +1082,7 @@ class ChatMemberAdministrator(BaseModel):
     can_post_messages: Optional["bool"]
     can_edit_messages: Optional["bool"]
     can_pin_messages: Optional["bool"]
+    can_manage_topics: Optional["bool"]
     custom_title: Optional["str"]
 
 
@@ -1002,6 +1109,7 @@ class ChatMemberRestricted(BaseModel):
         can_change_info: True, if the user is allowed to change the chat title, photo and other settings
         can_invite_users: True, if the user is allowed to invite new users to the chat
         can_pin_messages: True, if the user is allowed to pin messages
+        can_manage_topics: True, if the user is allowed to create forum topics
         can_send_messages: True, if the user is allowed to send text messages, contacts, locations and venues
         can_send_media_messages: True, if the user is allowed to send audios, documents, photos, videos, video notes and voice notes
         can_send_polls: True, if the user is allowed to send polls
@@ -1015,6 +1123,7 @@ class ChatMemberRestricted(BaseModel):
     can_change_info: "bool"
     can_invite_users: "bool"
     can_pin_messages: "bool"
+    can_manage_topics: "bool"
     can_send_messages: "bool"
     can_send_media_messages: "bool"
     can_send_polls: "bool"
@@ -1114,6 +1223,7 @@ class ChatPermissions(BaseModel):
         can_change_info: Optional. True, if the user is allowed to change the chat title, photo and other settings. Ignored in public supergroups
         can_invite_users: Optional. True, if the user is allowed to invite new users to the chat
         can_pin_messages: Optional. True, if the user is allowed to pin messages. Ignored in public supergroups
+        can_manage_topics: Optional. True, if the user is allowed to create forum topics. If omitted defaults to the value of can_pin_messages
     '''
     can_send_messages: Optional["bool"]
     can_send_media_messages: Optional["bool"]
@@ -1123,6 +1233,7 @@ class ChatPermissions(BaseModel):
     can_change_info: Optional["bool"]
     can_invite_users: Optional["bool"]
     can_pin_messages: Optional["bool"]
+    can_manage_topics: Optional["bool"]
 
 
 class ChatLocation(BaseModel):
@@ -1135,6 +1246,22 @@ class ChatLocation(BaseModel):
     '''
     location: "Location"
     address: "str"
+
+
+class ForumTopic(BaseModel):
+    '''
+    This object represents a forum topic.
+
+    Arguments:
+        message_thread_id: Unique identifier of the forum topic
+        name: Name of the topic
+        icon_color: Color of the topic icon in RGB format
+        icon_custom_emoji_id: Optional. Unique identifier of the custom emoji shown as the topic icon
+    '''
+    message_thread_id: "int"
+    name: "str"
+    icon_color: "int"
+    icon_custom_emoji_id: Optional["str"]
 
 
 class BotCommand(BaseModel):
@@ -1307,12 +1434,14 @@ class InputMediaPhoto(BaseModel):
         caption: Optional. Caption of the photo to be sent, 0-1024 characters after entities parsing
         parse_mode: Optional. Mode for parsing entities in the photo caption. See formatting options for more details.
         caption_entities: Optional. List of special entities that appear in the caption, which can be specified instead of parse_mode
+        has_spoiler: Optional. Pass True if the photo needs to be covered with a spoiler animation
     '''
     type: "str"
     media: "str"
     caption: Optional["str"]
     parse_mode: Optional["str"]
     caption_entities: Optional[List["MessageEntity"]]
+    has_spoiler: Optional["bool"]
 
 
 class InputMediaVideo(BaseModel):
@@ -1329,7 +1458,8 @@ class InputMediaVideo(BaseModel):
         width: Optional. Video width
         height: Optional. Video height
         duration: Optional. Video duration in seconds
-        supports_streaming: Optional. Pass True, if the uploaded video is suitable for streaming
+        supports_streaming: Optional. Pass True if the uploaded video is suitable for streaming
+        has_spoiler: Optional. Pass True if the video needs to be covered with a spoiler animation
     '''
     type: "str"
     media: "str"
@@ -1341,6 +1471,7 @@ class InputMediaVideo(BaseModel):
     height: Optional["int"]
     duration: Optional["int"]
     supports_streaming: Optional["bool"]
+    has_spoiler: Optional["bool"]
 
 
 class InputMediaAnimation(BaseModel):
@@ -1357,6 +1488,7 @@ class InputMediaAnimation(BaseModel):
         width: Optional. Animation width
         height: Optional. Animation height
         duration: Optional. Animation duration in seconds
+        has_spoiler: Optional. Pass True if the animation needs to be covered with a spoiler animation
     '''
     type: "str"
     media: "str"
@@ -1367,6 +1499,7 @@ class InputMediaAnimation(BaseModel):
     width: Optional["int"]
     height: Optional["int"]
     duration: Optional["int"]
+    has_spoiler: Optional["bool"]
 
 
 class InputMediaAudio(BaseModel):
@@ -1417,6 +1550,14 @@ class InputMediaDocument(BaseModel):
     disable_content_type_detection: Optional["bool"]
 
 
+class InputFile(BaseModel):
+    '''
+    This object represents the contents of a file to be uploaded. Must be posted using multipart/form-data in the usual way that files are uploaded via the browser.
+
+    Arguments:
+    '''
+pass
+
 class Sticker(BaseModel):
     '''
     This object represents a sticker.
@@ -1424,6 +1565,7 @@ class Sticker(BaseModel):
     Arguments:
         file_id: Identifier for this file, which can be used to download or reuse the file
         file_unique_id: Unique identifier for this file, which is supposed to be the same over time and for different bots. Can't be used to download or reuse the file.
+        type: Type of the sticker, currently one of &#8220;regular&#8221;, &#8220;mask&#8221;, &#8220;custom_emoji&#8221;. The type of the sticker is independent from its format, which is determined by the fields is_animated and is_video.
         width: Sticker width
         height: Sticker height
         is_animated: True, if the sticker is animated
@@ -1431,12 +1573,14 @@ class Sticker(BaseModel):
         thumb: Optional. Sticker thumbnail in the .WEBP or .JPG format
         emoji: Optional. Emoji associated with the sticker
         set_name: Optional. Name of the sticker set to which the sticker belongs
-        premium_animation: Optional. Premium animation for the sticker, if the sticker is premium
+        premium_animation: Optional. For premium regular stickers, premium animation for the sticker
         mask_position: Optional. For mask stickers, the position where the mask should be placed
+        custom_emoji_id: Optional. For custom emoji stickers, unique identifier of the custom emoji
         file_size: Optional. File size in bytes
     '''
     file_id: "str"
     file_unique_id: "str"
+    type: "str"
     width: "int"
     height: "int"
     is_animated: "bool"
@@ -1446,6 +1590,7 @@ class Sticker(BaseModel):
     set_name: Optional["str"]
     premium_animation: Optional["File"]
     mask_position: Optional["MaskPosition"]
+    custom_emoji_id: Optional["str"]
     file_size: Optional["int"]
 
 
@@ -1456,17 +1601,17 @@ class StickerSet(BaseModel):
     Arguments:
         name: Sticker set name
         title: Sticker set title
+        sticker_type: Type of stickers in the set, currently one of &#8220;regular&#8221;, &#8220;mask&#8221;, &#8220;custom_emoji&#8221;
         is_animated: True, if the sticker set contains animated stickers
         is_video: True, if the sticker set contains video stickers
-        contains_masks: True, if the sticker set contains masks
         stickers: List of all set stickers
         thumb: Optional. Sticker set thumbnail in the .WEBP, .TGS, or .WEBM format
     '''
     name: "str"
     title: "str"
+    sticker_type: "str"
     is_animated: "bool"
     is_video: "bool"
-    contains_masks: "bool"
     stickers: List["Sticker"]
     thumb: Optional["PhotoSize"]
 
@@ -1533,7 +1678,7 @@ class InlineQueryResultArticle(BaseModel):
         input_message_content: Content of the message to be sent
         reply_markup: Optional. Inline keyboard attached to the message
         url: Optional. URL of the result
-        hide_url: Optional. Pass True, if you don't want the URL to be shown in the message
+        hide_url: Optional. Pass True if you don't want the URL to be shown in the message
         description: Optional. Short description of the result
         thumb_url: Optional. Url of the thumbnail for the result
         thumb_width: Optional. Thumbnail width
@@ -2186,13 +2331,13 @@ class InputInvoiceMessageContent(BaseModel):
         photo_size: Optional. Photo size in bytes
         photo_width: Optional. Photo width
         photo_height: Optional. Photo height
-        need_name: Optional. Pass True, if you require the user's full name to complete the order
-        need_phone_number: Optional. Pass True, if you require the user's phone number to complete the order
-        need_email: Optional. Pass True, if you require the user's email address to complete the order
-        need_shipping_address: Optional. Pass True, if you require the user's shipping address to complete the order
-        send_phone_number_to_provider: Optional. Pass True, if the user's phone number should be sent to provider
-        send_email_to_provider: Optional. Pass True, if the user's email address should be sent to provider
-        is_flexible: Optional. Pass True, if the final price depends on the shipping method
+        need_name: Optional. Pass True if you require the user's full name to complete the order
+        need_phone_number: Optional. Pass True if you require the user's phone number to complete the order
+        need_email: Optional. Pass True if you require the user's email address to complete the order
+        need_shipping_address: Optional. Pass True if you require the user's shipping address to complete the order
+        send_phone_number_to_provider: Optional. Pass True if the user's phone number should be sent to provider
+        send_email_to_provider: Optional. Pass True if the user's email address should be sent to provider
+        is_flexible: Optional. Pass True if the final price depends on the shipping method
     '''
     title: "str"
     description: "str"
@@ -2239,6 +2384,16 @@ class ChosenInlineResult(BaseModel):
     location: Optional["Location"]
     inline_message_id: Optional["str"]
     query: "str"
+
+
+class SentWebAppMessage(BaseModel):
+    '''
+    Describes an inline message sent by a Web App on behalf of a user.
+
+    Arguments:
+        inline_message_id: Optional. Identifier of the sent inline message. Available only if there is an inline keyboard attached to the message.
+    '''
+    inline_message_id: Optional["str"]
 
 
 class LabeledPrice(BaseModel):
@@ -2603,6 +2758,22 @@ class PassportElementErrorTranslationFiles(BaseModel):
     message: "str"
 
 
+class PassportElementErrorUnspecified(BaseModel):
+    '''
+    Represents an issue in an unspecified place. The error is considered resolved when new data is added.
+
+    Arguments:
+        source: Error source, must be unspecified
+        type: Type of element of the user's Telegram Passport which has the issue
+        element_hash: Base64-encoded element hash
+        message: Error message
+    '''
+    source: "str"
+    type: "str"
+    element_hash: "str"
+    message: "str"
+
+
 class Game(BaseModel):
     '''
     This object represents a game. Use BotFather to create and edit games, their short names will act as unique identifiers.
@@ -2648,4 +2819,3 @@ Update.update_forward_refs()
 Chat.update_forward_refs()
 MessageBody.update_forward_refs()
 InlineKeyboardButton.update_forward_refs()
-InlineKeyboardMarkup.update_forward_refs()

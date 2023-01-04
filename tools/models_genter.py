@@ -130,23 +130,23 @@ f = open("Telegram Bot API.html","r",encoding="utf-8")
 html=etree.HTML(f.read())
 f.close()
 #print(etree.tostring(html))
-#Types Genter
+#Types Genter  //*[@id="dev_page_content"]/h4[179]
 type_pos_list : List[int] = []
-type_pos_list.append(7)
-for i in range(13,86):
+type_pos_list.append(9)
+for i in range(15,97):
     type_pos_list.append(i)
-for i in range(157,160):
+for i in range(179,182):
     type_pos_list.append(i)
-type_pos_list.append(168)
-for i in range(170,198):
+type_pos_list.append(191)
+for i in range(193,223):
     type_pos_list.append(i)
-for i in range(204,216):
+for i in range(227,239):
     type_pos_list.append(i)
-for i in range(217,226):
+for i in range(240,250):
     type_pos_list.append(i)
-for i in range(228,230):
+for i in range(251,256):
     type_pos_list.append(i)
-type_pos_list.append(232)
+#type_pos_list.append(232)
 types_text = '''
 from typing import Dict, List, Optional, Text, Union
 from typing_extensions import Literal
