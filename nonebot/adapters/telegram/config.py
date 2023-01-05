@@ -17,6 +17,7 @@ class Config(BaseModel):
       - ``telegram_bot_api_proxy`` / ``telegram_bot_api_proxy``: 代理服务器地址，需满足httpx代理的格式，默认为None
       - ``telegram_polling_interval`` / ``telegram_polling_interval``: (仅HTTP轮训模式)HTTP轮训间隔，默认为0，即启用长轮训
       - ``telegram_long_polling_timeout`` / ``telegram_long_polling_timeout``: (仅HTTP轮训模式)HTTP长轮训超时时间，默认为20秒
+      - ``telegram_mount_media`` / ``telegram_mount_media``: 在fastapi上挂载本地媒体下载api，开启后可以实时获取图片的本地下载链接
     """
     webhook_addr: Optional[str] = Field(default=None, alias="telegram_webhook_host")
     bot_token: Optional[str] = Field(default=None, alias="telegram_bot_token")
@@ -26,6 +27,7 @@ class Config(BaseModel):
     telegram_bot_api_proxy: Optional[str] = Field(default=None, alias="telegram_bot_api_proxy")
     telegram_polling_interval: Optional[int] = Field(default=0, alias="telegram_polling_interval")
     telegram_long_polling_timeout: Optional[int] = Field(default=20, alias="telegram_long_polling_timeout")
+    telegram_mount_media: Optional[bool] = Field(default=True, alias="telegram_mount_media")
     #telegram_use_webhook:Optional[bool] = Field(default=False, alias="telegram_adapter_debug")
 
     class Config:

@@ -7,6 +7,7 @@ import traceback
 import httpx
 import aiocache
 from typing import Any, Dict, List, Type, Union, Callable, Optional, cast
+from io import BytesIO
 
 from pygtrie import StringTrie
 from nonebot.typing import overrides
@@ -46,7 +47,12 @@ from .event import (
 from .message import Message, MessageSegment
 from .exception import NetworkError, ApiNotAvailable, ActionFailed, TelegramAdapterConfigException, MessageNotAcceptable
 from .utils import log
-from .cache import TelegramCache,TelegramUserNameIdCache
+from .cache import TelegramCache, TelegramUserNameIdCache
+
+from fastapi import FastAPI
+from fastapi.requests import Request as FastAPIRequest
+from fastapi.responses import Response as FastAPIResponse
+from starlette.responses import StreamingResponse
 
 from nonebot.message import handle_event
 
@@ -58,7 +64,6 @@ class Adapter(BaseAdapter):
     use_long_polling: bool
     cache: TelegramCache
     username_cache: TelegramUserNameIdCache
-
 
     @overrides(BaseAdapter)
     def __init__(self, driver: Driver, **kwargs: Any):
@@ -83,7 +88,12 @@ class Adapter(BaseAdapter):
             self.driver.on_startup(self._setup_webhook)
         else:
             raise TelegramAdapterConfigException("No avaliable driver type")
-        #setup cache
+        if self.telegram_config.telegram_mount_media:
+            if "fastapi" in self.driver.type:
+                self.driver.on_startup(self._regist_media_mount)
+            else:
+                log("WARNING", f"fastapi is required to use telegram_mount_media future, media mount will be disabled")
+        # setup cache
         self.cache = TelegramCache()
         self.username_cache = TelegramUserNameIdCache()
         self.driver.on_startup(self._setup_adapter_async)
@@ -112,7 +122,7 @@ class Adapter(BaseAdapter):
         if self.use_long_polling and api == "getUpdates":
             api_timeout = self.telegram_config.telegram_long_polling_timeout
         else:
-            api_timeout=self.config.api_timeout
+            api_timeout = self.config.api_timeout
         log("DEBUG", f"Calling API <y>{api}</y>")
         # print(data)
         headers = {"Content-Type": "application/json"}
@@ -122,7 +132,7 @@ class Adapter(BaseAdapter):
         if data.get("data") != None and len(data) == 1:
             data = data.get("data")
         try:
-            async with httpx.AsyncClient(headers=headers,proxies=self.telegram_config.telegram_bot_api_proxy) as client:
+            async with httpx.AsyncClient(headers=headers, proxies=self.telegram_config.telegram_bot_api_proxy) as client:
                 response = await client.post(f"{self.telegram_config.telegram_bot_api_server_addr}/bot{self.telegram_config.bot_token}/{api}",
                                              json=data,
                                              timeout=api_timeout)
@@ -130,8 +140,9 @@ class Adapter(BaseAdapter):
                 result = response.json()
                 if isinstance(result, dict):
                     if result.get("ok") != True:
-                        #print(result)
-                        raise ActionFailed(result.get("error_code"),result.get("description"))
+                        # print(result)
+                        raise ActionFailed(result.get(
+                            "error_code"), result.get("description"))
                     # print(result["result"])
                     return result["result"]
             raise NetworkError(f"HTTP request received unexpected "
@@ -143,7 +154,7 @@ class Adapter(BaseAdapter):
 
     async def _call_multipart_form_data_api(self, api: str, file: dict, data: dict):
         log("DEBUG", f"Calling API <y>{api}</y>")
-        #print(data)
+        # print(data)
         for key in data:
             if isinstance(data[key], int) or isinstance(data[key], float):
                 data[key] = str(data[key])
@@ -160,13 +171,13 @@ class Adapter(BaseAdapter):
                                              timeout=self.config.api_timeout)
             if 200 <= response.status_code < 500:
                 result = response.json()
-                #print(result)
+                # print(result)
                 if isinstance(result, dict):
                     if result.get("ok") != True:
                         raise ActionFailed()
-                    #print(result["result"])
+                    # print(result["result"])
                     return result["result"]
-            #print(result)
+            # print(result)
             raise NetworkError(f"HTTP request received unexpected "
                                f"status code: {response.status_code}")
         except httpx.InvalidURL:
@@ -174,11 +185,11 @@ class Adapter(BaseAdapter):
         except httpx.HTTPError:
             raise NetworkError("HTTP request failed")
         finally:
-                for file_obj in file.values():
-                    try:
-                        file_obj.close()
-                    except:
-                        pass
+            for file_obj in file.values():
+                try:
+                    file_obj.close()
+                except:
+                    pass
 
     def _check_config(self):
         if not self.telegram_config.bot_token:
@@ -193,6 +204,27 @@ class Adapter(BaseAdapter):
             self.use_long_polling = True
         else:
             self.use_long_polling = False
+
+    async def _regist_media_mount(self):
+        async def _handle_media_request(file_id: str, request: FastAPIRequest):
+            if request.client.host != "127.0.0.1":
+                return FastAPIResponse(status_code=403)
+            if file_id == None:
+                return FastAPIResponse(status_code=404)
+            bot: Bot = Bot(self, self.bot_name)
+            try:
+                file = await bot.download_file(file_id)
+            except:
+                return FastAPIResponse(status_code=404)
+            return StreamingResponse(BytesIO(file[1]), media_type=f"image/{file[0].split('.')[1]}")
+
+        app: FastAPI = self.driver.server_app
+        app.add_api_route("/antelegram/telegram_media",
+            _handle_media_request,
+            name="telegra_media",
+            methods=["GET"]
+            )
+
 
     async def _setup_webhook(self):
         await self._call_api(None, "deleteWebhook")
@@ -212,6 +244,8 @@ class Adapter(BaseAdapter):
             )
         return Response(200)
 
+
+
     def _pre_process_event(self, event: MessageEvent):
         if isinstance(event, GroupMessageEvent):
             if event.message.text:
@@ -223,7 +257,7 @@ class Adapter(BaseAdapter):
 
     async def json_to_event(self, json_data: Any) -> Optional[Event]:
         try:
-            #print(json_data)
+            # print(json_data)
             if "callback_query" in json_data:
                 if json_data["callback_query"]["from"]["is_bot"]:
                     return
@@ -234,7 +268,7 @@ class Adapter(BaseAdapter):
                 json_data["user_id"] = json_data["message"]["from"]["id"]
                 json_data["group_id"] = json_data["message"]["chat"]["id"]
                 if "username" in json_data["message"]["from"]:
-                    await self.username_cache.update_cache(json_data["message"]["from"]["username"],json_data["message"]["from"]["id"])
+                    await self.username_cache.update_cache(json_data["message"]["from"]["username"], json_data["message"]["from"]["id"])
                 if json_data["message"]["chat"]["type"] == "private":
                     event = PrivateMessageEvent.parse_obj(json_data)
                 elif "group" in json_data["message"]["chat"]["type"]:
@@ -296,21 +330,22 @@ class Adapter(BaseAdapter):
                             #print(f"offset update to {offset}")
                         event = await self.json_to_event(message)
                         try:
-                            loop = asyncio.get_event_loop() 
-                            loop.create_task(polling_handle_event(message, bot, event))
+                            loop = asyncio.get_event_loop()
+                            loop.create_task(
+                                polling_handle_event(message, bot, event))
                         except Exception as e:
                             logger.opt(colors=True, exception=e).error(
                                 f"<r><bg #f8bbd0>Failed to handle event. Raw: {message}</bg #f8bbd0></r>"
                             )
-                except (KeyboardInterrupt,asyncio.exceptions.CancelledError):
+                except (KeyboardInterrupt, asyncio.exceptions.CancelledError):
                     break
                 except NetworkError:
                     if not self.use_long_polling:
                         log("ERROR", "Failed to handle polling")
                         traceback.print_exc()
                 except:
-                        log("ERROR", "Failed to handle polling")
-                        traceback.print_exc()
+                    log("ERROR", "Failed to handle polling")
+                    traceback.print_exc()
                 if not self.use_long_polling:
                     await asyncio.sleep(self.telegram_config.telegram_polling_interval)
 

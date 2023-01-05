@@ -50,7 +50,7 @@ class TelegramUserNameIdCache:
             log("INFO", f"Redis init success!")
             return True
         except:
-            log("INFO", f"Redis init failed, some function may not work like username to user_id")
+            log("WARNING", f"Redis init failed, some function may not work like username to user_id")
             return False
 
     async def flush_cache(self):
