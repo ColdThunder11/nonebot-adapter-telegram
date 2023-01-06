@@ -177,6 +177,7 @@ Update.update_forward_refs()
 Chat.update_forward_refs()
 MessageBody.update_forward_refs()
 InlineKeyboardButton.update_forward_refs()
+InlineKeyboardMarkup.update_forward_refs()
 '''.strip()
 print(types_text)
 with open("tg_types.py","w",encoding="utf-8") as wf:

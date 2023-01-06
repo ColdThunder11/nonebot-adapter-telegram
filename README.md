@@ -10,12 +10,9 @@
 ```shell
 pip install nonebot-adapter-antelegram
 ```
-注意：强烈建议安装redis，默认端口监听本地，无密码，最大db数>=3，否则部分功能将不可用
 ## 上路
-一、  
-新建项目文件夹  
-二、  
-在nonebot2的配置文件中配置以下选项  
+一、新建项目文件夹  
+二、在nonebot2的配置文件中配置以下选项  
 ```shell
 bot_token=your_bot_token  #telegram bot token，需要事先申请，参考https://core.telegram.org/bots#3-how-do-i-create-a-bot
 telegram_bot_api_server_addr=https://api.telegram.org #可选，应该大概也可以替换为反代的域名，不设置默认官方
@@ -40,10 +37,11 @@ telegram_long_polling_timeout=0 #不使用长轮训
 #注意：使用driver=~fastapi+~httpx时会使用httpx作为Driver并启动fastapi，用于需要轮训且同时启动fastapi服务器的情况
 
 ```
-三、（仅使用webhook方式需要）  
+三、配置webhook反代（仅使用webhook方式需要）  
 将webhook域名解析到本机，用你喜欢的方式配置反代将webhook域名的流量转发到nonebot2的监听端口（如果不使用本地bot api）  
-四、  
-开始写机器人（摸鱼）  
+四、安装redis（推荐）  
+为了更好的使用体验，我们推荐您安装redis以启用部分缓存功能，不使用redis会导致部分功能失效  
+五、开始写机器人（摸鱼）  
 
 ## 已知问题（短时间内并不会解决）  
 仅支持接受有限种类的消息  
@@ -83,4 +81,5 @@ async def echo_escape(bot: Bot, event: MessageEvent):
 ```
 运行机器人，向bot私聊发送/echo 123，bot会将消息原样重新发送  
 
-
+## 从Onebot v11插件迁移
+[nonebridge](https://github.com/ColdThunder11/nonebridge)是一个实验性~~玩具性~~项目，可以将本适配器简单的Telegram消息转换为Onebot v11消息直接分发给原先为Onebot v11适配器编写的插件，详情请参考该项目README。

@@ -41,10 +41,10 @@ class TelegramUserNameIdCache:
         self.redis_on = False
         pass
 
-    async def init(self) -> bool:
+    async def init(self, redis_db: int) -> bool:
         try:
-            self.redis_sync = redis.from_url("redis://localhost",  db=2)
-            self.redis = await aioredis.from_url("redis://localhost",  db=2)
+            self.redis_sync = redis.from_url("redis://localhost",  db=redis_db)
+            self.redis = await aioredis.from_url("redis://localhost",  db=redis_db)
             self.redis_on = True
             TelegramUserNameIdCache.instance = self
             log("INFO", f"Redis init success!")
@@ -59,11 +59,11 @@ class TelegramUserNameIdCache:
 
     async def update_cache(self, username: str, user_id: int):
         if self.redis_on:
-            await self.redis.set(username, user_id)
+            await self.redis.set(f"uname|{username}", user_id)
 
     def get_user_id(self, username: str) -> int:
         if self.redis_on:
-            user_id = self.redis_sync.get(username)
+            user_id = self.redis_sync.get(f"uname|{username}")
             if not user_id:
                 return None
             return user_id if isinstance(user_id, int) else int(user_id)

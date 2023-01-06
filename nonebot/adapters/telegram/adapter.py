@@ -91,6 +91,10 @@ class Adapter(BaseAdapter):
         if self.telegram_config.telegram_mount_media:
             if "fastapi" in self.driver.type:
                 self.driver.on_startup(self._regist_media_mount)
+                if self.telegram_config.telegram_media_public_addr != None:
+                    self.media_server_url = f"{self.telegram_config.telegram_media_public_addr}/antelegram/telegram_media"
+                else:
+                    self.media_server_url = f"http://127.0.0.1:{self.config.port}/antelegram/telegram_media"
             else:
                 log("WARNING", f"fastapi is required to use telegram_mount_media future, media mount will be disabled")
         # setup cache
@@ -99,7 +103,7 @@ class Adapter(BaseAdapter):
         self.driver.on_startup(self._setup_adapter_async)
 
     async def _setup_adapter_async(self):
-        await self.username_cache.init()
+        await self.username_cache.init(self.telegram_config.telegram_redis_db)
 
     @classmethod
     @overrides(BaseAdapter)
@@ -207,9 +211,9 @@ class Adapter(BaseAdapter):
 
     async def _regist_media_mount(self):
         async def _handle_media_request(file_id: str, request: FastAPIRequest):
-            if request.client.host != "127.0.0.1":
+            if self.telegram_config.telegram_media_public_addr == None and request.client.host != "127.0.0.1":
                 return FastAPIResponse(status_code=403)
-            if file_id == None:
+            if file_id == None or file_id == "":
                 return FastAPIResponse(status_code=404)
             bot: Bot = Bot(self, self.bot_name)
             try:
@@ -220,11 +224,10 @@ class Adapter(BaseAdapter):
 
         app: FastAPI = self.driver.server_app
         app.add_api_route("/antelegram/telegram_media",
-            _handle_media_request,
-            name="telegra_media",
-            methods=["GET"]
-            )
-
+                          _handle_media_request,
+                          name="telegra_media",
+                          methods=["GET"]
+                          )
 
     async def _setup_webhook(self):
         await self._call_api(None, "deleteWebhook")
@@ -243,8 +246,6 @@ class Adapter(BaseAdapter):
                 f"<r><bg #f8bbd0>Failed to handle event. Raw: {json_data}</bg #f8bbd0></r>"
             )
         return Response(200)
-
-
 
     def _pre_process_event(self, event: MessageEvent):
         if isinstance(event, GroupMessageEvent):

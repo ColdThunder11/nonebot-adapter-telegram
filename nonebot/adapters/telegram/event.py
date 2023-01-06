@@ -14,7 +14,7 @@ from nonebot.adapters import Event as BaseEvent
 from .message import Message, MessageSegment
 from .models import *
 from .cache import TelegramUserNameIdCache
-
+from .utils import log
 
 class Event(BaseEvent):
     """
@@ -111,6 +111,14 @@ class MessageEvent(Event):
     def get_event_description(self) -> str:
         return f'Message[{self.message.chat.type}] {self.message.message_id} from {self.message.from_.id} in {self.message.chat.id} "{self.get_plaintext()}"'
 
+    @staticmethod
+    def get_max_size_file(file_list: List) -> Any:
+        max_index = 0
+        for i in range(len(file_list)):
+            if file_list[i].file_size > file_list[max_index].file_size:
+                max_index = i
+        return file_list[max_index]
+
     def get_message_struct_in_message(self, message: MessageBody) -> Message:
         if message.text:
             text_msg = message.text
@@ -119,13 +127,18 @@ class MessageEvent(Event):
             if message.entities:
                 for entitiy in message.entities:
                     if entitiy.type == "mention":
-                        at_username = text_msg[current_start_offset+entitiy.offset +
-                                               1:current_start_offset+entitiy.offset+entitiy.length]
-                        if user_id := TelegramUserNameIdCache.get_inst().get_user_id(at_username):
-                            msg_list.append(MessageSegment.text(
-                                text_msg[current_start_offset:current_start_offset+entitiy.offset]))
-                            current_start_offset += entitiy.offset+entitiy.length
-                            msg_list.append(MessageSegment.at(user_id))
+                        if entitiy.user:
+                            msg_list.append(MessageSegment.at(entitiy.user.id))
+                        else:
+                            at_username = text_msg[current_start_offset+entitiy.offset +
+                                                1:current_start_offset+entitiy.offset+entitiy.length]
+                            if user_id := TelegramUserNameIdCache.get_inst().get_user_id(at_username):
+                                msg_list.append(MessageSegment.text(
+                                    text_msg[current_start_offset:current_start_offset+entitiy.offset]))
+                                current_start_offset += entitiy.offset+entitiy.length
+                                msg_list.append(MessageSegment.at(user_id))
+                            else:
+                                log("WARNING",f"Get user_id of @{at_username} failed")
             if current_start_offset < len(message.text):
                 msg_list.append(MessageSegment.text(
                     text_msg[current_start_offset:]))
@@ -134,8 +147,10 @@ class MessageEvent(Event):
         if message.caption:
             data["caption"] = message.caption
         if message.photo:
-            data.update(message.photo[0].dict())
-            data["photo"] = message.photo[0].file_id
+            max_size_photo: PhotoSize = MessageEvent.get_max_size_file(
+                message.photo)
+            data.update(max_size_photo.dict())
+            data["photo"] = max_size_photo.file_id
             return Message(MessageSegment("photo", data))
         elif message.document:
             data.update(message.document.dict())
