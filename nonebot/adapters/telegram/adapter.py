@@ -254,7 +254,9 @@ class Adapter(BaseAdapter):
                     event.message.text = event.message.text.replace(
                         f"@{self.bot_name}", "").strip()
                     event.to_me = True
-                    print(f"event.message.text:{event.message.text}")
+                    # remove at entities
+                    event.message.entities.pop(0)
+                    # print(f"event.message.text:{event.message.text}")
 
     async def json_to_event(self, json_data: Any) -> Optional[Event]:
         try:
