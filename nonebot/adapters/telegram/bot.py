@@ -2,6 +2,7 @@ import json
 import urllib.parse
 import asyncio
 import os
+import imghdr
 from os import path
 from io import BytesIO
 import base64
@@ -385,6 +386,13 @@ class Bot(BaseBot):
             else:
                 raise MessageNotSupport()
             if len(files.keys()) > 0:
+                if core_ms.type == "photo": #Detect gif
+                    if isinstance(files[core_ms.type], bytes) or isinstance(files[core_ms.type], BytesIO):
+                        imgfmt = imghdr.what(files[core_ms.type])
+                        if imgfmt == "gif":
+                            files["animation"] = ("1.gif", files.pop(core_ms.type))
+                            await self.call_multipart_form_data_api(f"sendAnimation", files, data)
+                            return
                 await self.call_multipart_form_data_api(f"send{core_ms.type[0].upper()+core_ms.type[1:]}", files, data)
             else:
                 await self.call_api(f"send{core_ms.type[0].upper()+core_ms.type[1:]}", **data)
