@@ -23,9 +23,9 @@ exclude = ["nonebot/__init__.py", "nonebot/adapters/__init__.py"]
 [tool.poetry.dependencies]
 python = "^3.8.1"
 httpx = { version = ">=0.20.0, <1.0.0", extras = ["http2"] }
-nonebot2 = "^2.0.0rc2"
+nonebot2 = "^2.0.1"
 aiocache = "^0.11.1"
-redis = ">=4.2.0rc1"
+redis = ">=4.6.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
