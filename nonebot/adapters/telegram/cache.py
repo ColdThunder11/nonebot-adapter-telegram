@@ -45,6 +45,7 @@ class TelegramUserNameIdCache:
         try:
             self.redis_sync = redis.from_url("redis://localhost",  db=redis_db)
             self.redis = await aioredis.from_url("redis://localhost",  db=redis_db)
+            self.redis_sync.get("uname")
             self.redis_on = True
             TelegramUserNameIdCache.instance = self
             log("INFO", f"Redis init success!")
